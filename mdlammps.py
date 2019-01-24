@@ -208,19 +208,19 @@ def bond(): # harmonic
     r0 = 1.5
     global pbond
     pbond = 0
-    for i in range(nbonds):
+    for i in range(nbonds):  # loop over bonds, should we loop over types?
         ipos = pos[bonds[i][1]]
         jpos = pos[bonds[i][2]]
         dpos = jpos-ipos
         r =  math.sqrt(numpy.dot(dpos,dpos))
         dr = r-r0
         pot = bondk*dr**2
-        pbond += pot
+        pbond += pot             # total bond
         dudr = 2.*bondk*dr
         dpos = (dudr/r)*dpos
-        acc[bonds[i][1]] += dpos
+        acc[bonds[i][1]] += dpos  # add forces back 
         acc[bonds[i][2]] -= dpos
-        
+
 #-----------------------------------------------------------
 def force():
     global acc
