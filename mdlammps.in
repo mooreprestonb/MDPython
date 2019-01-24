@@ -1,0 +1,19 @@
+# inputfile for mdlammps.py
+
+units lj
+timestep 0.05
+
+read_data  morse.init
+
+#pair_style 	lj/cut 3
+#bond_style 	harmonic
+#
+#bond_coeff 1 1.5 1.0 # V r0
+
+dump output all atom 10 ho.xyz
+
+thermo 100
+
+run 100000
+
+
