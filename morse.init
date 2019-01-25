@@ -1,8 +1,8 @@
 init lammps data file for morse
 
-2 atoms
+3 atoms
 2 atom types
-1 bonds
+2 bonds
 1 bond types
 
 -10 10 xlo xhi
@@ -16,16 +16,18 @@ Masses
 
 Atoms # full index type group charge x y z nx ny nz
 
-1 1 1 0 0 0 0 
-2 2 1 0 2 2 0
+1 1 1 0    0     0   0 
+2 2 1 0  1.6   1.6   0
+3 2 1 0 -1.6  -1.6   0
 
 Velocities
 
-1 0 0 0
-2 0.0 0.0 0
+1 0.0 -0.1 0
+2 0.0  0.1 0
+3 0.0  0.0 0
 
 Bonds
 
 1 1 1 2
-
+2 1 1 3
  

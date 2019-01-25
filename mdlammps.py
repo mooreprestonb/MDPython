@@ -6,6 +6,23 @@ import numpy
 import re
 import math
 
+import mdoutput  # file with output routines
+
+# assign global variables
+global mass         # masses of each type
+global pos          # positions of each atom
+global vel          # velocities of each atom
+global acc          # acceleration of each atom
+global box          # box coordinates
+global natoms       # number of atoms
+global atypes       # number of atom types
+global aatype       # array of atom types    
+global nbonds       # number of bonds
+global tbonds       # number of bond types
+global bonds        # bonds
+global abtype       # array of bond types    
+global masses       # broadcast of mass type to atoms
+
 #-------------------------------------------------
 def findline1(lines,val): # find line with first word val
     for ln in range(len(lines)):  # loop over lines 
@@ -48,6 +65,7 @@ def readin():
     global initfile
     ln = findline1(lines,"read_data")
     initfile = (lines[ln].split()[1])
+    readinit(initfile)        # read initfile to get atoms bonds and types
 
     global ithermo
     ln = findline1(lines,"thermo")
@@ -59,38 +77,54 @@ def readin():
     idump = int(lines[ln].split()[4])
     dumpfile = lines[ln].split()[5]
 
+    global bond_style
+    ln = findline1(lines,"bond_style")
+    bond_styles = lines[ln].split()[1]
+    global bondcoeff 
+
+    if re.search("harmonic",bond_styles,flags=re.IGNORECASE): 
+        print "Reading in harmonic bonds coefficents for",tbonds,"types"
+        bond_style = 0 #harmonic bond style
+        bondcoeff = numpy.zeros((tbonds,2))  # read in kbond and r0
+        ln = findline1(lines,"bond_coeff")
+        for i in range(tbonds):
+            btype = lines[ln+i].split()[1]
+            if (int(btype) != i+1):
+                print "Error wrong type in bond_coeff at line",ln+i
+                print lines[ln+i]
+                exit(1)
+            else:
+                bondcoeff[i][0] = float(lines[ln+i].split()[2])
+                bondcoeff[i][1] = float(lines[ln+i].split()[3])
+    else:
+        print "Error bond_style \"",bond_styles,"\" not implemented"
+        exit(1)
+        
 #-------------------------------------------------
 def readinit(datafile): # read lammps init data file
-    global mass         # masses of each type
-    global pos          # positions of each atom
-    global vel          # velocities of each atom
-    global box          # box coordinates
-    global natoms       # number of atoms
-    global atypes       # number of atom types
-    global aatype       # array of atom types    
-    global nbonds       # number of bonds
-    global tbonds       # number of bond types
-    global bonds        # bonds
-    global abtype       # array of bond types    
-    global masses       # broadcast of mass type to atoms
     
     print "Reading",datafile
     fi = open(datafile,"r")
     lines = fi.readlines() # read in lines all at once
     fi.close()
 
+    global natoms
     ln = findline2(lines,"atoms")
     natoms = int(lines[ln].split()[0])
 
+    global atypes
     ln = findline2(lines,"atom types")
     atypes = int(lines[ln].split()[0])
 
+    global nbonds
     ln = findline2(lines,"bonds")
     nbonds = int(lines[ln].split()[0])
 
+    global tbonds
     ln = findline2(lines,"bond types")
     tbonds = int(lines[ln].split()[0])
 
+    global box
     box = numpy.zeros(3)
     ln = findline2(lines,"xlo xhi")
     xlo = float(lines[ln].split()[0])
@@ -107,13 +141,20 @@ def readinit(datafile): # read lammps init data file
     zhi = float(lines[ln].split()[1])
     box[2] = zhi-zlo
 
-    print natoms, atypes, nbonds, tbonds
+    print "Natoms",natoms," Atypes",atypes," Bonds",nbonds," Btypes",tbonds
 
+    global mass
+    global aatype
+    global pos
+    global vel
+    global masses
+    global bonds
+    
     mass = numpy.zeros(atypes)
     aatype = numpy.zeros(natoms,dtype=int)
     pos = numpy.zeros((natoms,3))
-    masses = numpy.zeros((natoms,3))
     vel = numpy.zeros((natoms,3))
+    masses = numpy.zeros((natoms,3))
     bonds =numpy.zeros((nbonds,3),dtype=int)
     
     ln = findline1(lines,"Masses")
@@ -184,39 +225,38 @@ def readinit(datafile): # read lammps init data file
                 print "Error: while assigning velocities at line",ln
                 print "Expecting",i+1,"got",words[0],"from",lines[ln+2]
                 exit(1)
-            bonds[i][0] = int(words[1])
-            bonds[i][1] = int(words[2])-1
-            bonds[i][2] = int(words[3])-1
+            bonds[i][0] = int(words[1])-1   # type
+            bonds[i][1] = int(words[2])-1  # atom 1
+            bonds[i][2] = int(words[3])-1  # atom 2
         print "Assigned Bonds"
     else:
         print "No bonds found"
 
-#----------------------------------------------------------
-def write_dump(dumpfile,istep):
-
-    fo = open(dumpfile,"a+")
-    fo.write("%d\n"% natoms)
-    fo.write("# step %d\n" % istep)
-    for i in range(natoms):
-        line = "Ar " + str(pos[i][0]) + " " + str(pos[i][1]) + " " + str(pos[i][2]) + "\n"
-        fo.write(line)
-    fo.close()
-    return 0
+def zero_momentum():  # zero the liniar momentum
+    global masses, vel  
+    mom = masses*vel
+    tmom = numpy.sum(mom,axis=0)/numpy.sum(masses,axis=0) # total mom/mass
+    vel -= tmom # zero out
+    
 #-----------------------------------------------------------
-def bond(): # harmonic
-    bondk = 2
-    r0 = 1.5
+def bond_harm(): # harmonic bondk = 2 r0 = 1.5
     global pbond
     pbond = 0
-    for i in range(nbonds):  # loop over bonds, should we loop over types?
+        
+    for i in range(nbonds):  # loop over bonds, 
         ipos = pos[bonds[i][1]]
         jpos = pos[bonds[i][2]]
+        bondk = bondcoeff[bonds[i][0]][0] # use type to bond params
+        r0 = bondcoeff[bonds[i][0]][1]
+        
         dpos = jpos-ipos
         r =  math.sqrt(numpy.dot(dpos,dpos))
         dr = r-r0
+
+        dudr = 2.*bondk*dr
         pot = bondk*dr**2
         pbond += pot             # total bond
-        dudr = 2.*bondk*dr
+
         dpos = (dudr/r)*dpos
         acc[bonds[i][1]] += dpos  # add forces back 
         acc[bonds[i][2]] -= dpos
@@ -225,17 +265,29 @@ def bond(): # harmonic
 def force():
     global acc
     global masses
-    acc.fill(0)
+    acc.fill(0) # zero out forces/acceration
     # lj
-    # bond
-    bond()
+    if bond_style == 0:
+        bond_harm()
+    else:
+        print "Error bond style not found!"
+        exit(1)
     # bend
     # torsion
-    acc /= masses
+    acc /= masses  # change forces into accelerations
 
 #-----------------------------------------------------------    
-# read command line for input file
+def step():
+    global pos, vel, acc, dt
+    # print istep,pos,vel,acc
+    vel += acc*dt/2.0
+    pos += vel*dt
+    force()
+    vel += acc*dt/2.0
 
+#-----------------------------------------------------------    
+
+# read command line for input file
 if (len(sys.argv) == 2):  # error check that we have an input file
     infile = sys.argv[1]
 else:
@@ -244,12 +296,10 @@ else:
 
 print sys.argv
 readin()
-print nsteps, dt, initfile
+print nsteps, dt
 
-readinit(initfile)
-
-global acc
-acc = numpy.zeros((natoms,3))
+zero_momentum()  # zero the momentum
+acc = numpy.zeros((natoms,3)) # allocate and zero the acceleration
 force()
 
 print "Running dynamics"
@@ -260,13 +310,9 @@ for istep in range(nsteps):
         print istep,ke+pbond,ke,pbond
 
     if(istep%idump==0):
-        write_dump(dumpfile,istep)
+        mdoutput.write_dump(dumpfile,istep,natoms,pos)
 
-    # print istep,pos,vel,acc
-    vel += acc*dt/2.0
-    pos += vel*dt
-    force()
-    vel += acc*dt/2.0
+    step()
         
 print "Done!"
 exit(0)
