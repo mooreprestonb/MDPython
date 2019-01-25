@@ -6,14 +6,17 @@ timestep 0.05
 read_data  morse.init
 
 #pair_style 	lj/cut 3
-#bond_style 	harmonic
-#
-#bond_coeff 1 1.5 1.0 # V r0
+
+bond_style 	harmonic
+bond_coeff 1 2.2 1.5 # V r0
+
+#bond_style morse
+#bond_coeff 1 1.5 0.75 1.5 # D alpha r0
 
 dump output all atom 10 ho.xyz
 
 thermo 100
 
-run 100000
+run 10000
 
 
