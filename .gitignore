@@ -1,2 +1,5 @@
 ho.xyz
 mdoutput.pyc
+test.init
+__pycache__/
+.gitignore
