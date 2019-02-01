@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # run MD using lammps style input
 
 import sys
@@ -8,7 +8,7 @@ import math
 
 import mdoutput  # file with output routines
 
-# assign global variables
+# assigned global variables
 global mass         # masses of each type
 global pos          # positions of each atom
 global vel          # velocities of each atom
@@ -32,7 +32,7 @@ def findline1(lines,val): # find line with first word val
             if (words[0] == val):
                 return ln
         
-    print "Word",val," not found!"
+    print ("Word",val," not found!")
     return -1
 
 #-------------------------------------------------
@@ -42,12 +42,12 @@ def findline2(lines,val): # find line with word anywhere
         if re.search(val,lines[ln],flags=re.IGNORECASE): 
             return ln
             
-    print "Word",val,"not found!"
+    print ("Word",val,"not found!")
     return -1
 
 #-------------------------------------------
 def readin():
-    print "Reading",sys.argv[1]
+    print ("Reading",sys.argv[1])
     fi = open(sys.argv[1],"r")
     lines = fi.readlines() # read in lines all at once
     fi.close()
@@ -83,27 +83,27 @@ def readin():
     global bondcoeff 
 
     if re.search("harmonic",bond_styles,flags=re.IGNORECASE): 
-        print "Reading in harmonic bonds coefficents for",tbonds,"types"
+        print("Reading in harmonic bonds coefficents for",tbonds,"types")
         bond_style = 0 #harmonic bond style
         bondcoeff = numpy.zeros((tbonds,2))  # read in kbond and r0
         ln = findline1(lines,"bond_coeff")
         for i in range(tbonds):
             btype = lines[ln+i].split()[1]
             if (int(btype) != i+1):
-                print "Error wrong type in bond_coeff at line",ln+i
-                print lines[ln+i]
+                print("Error wrong type in bond_coeff at line",ln+i)
+                print(lines[ln+i])
                 exit(1)
             else:
                 bondcoeff[i][0] = float(lines[ln+i].split()[2])
                 bondcoeff[i][1] = float(lines[ln+i].split()[3])
     else:
-        print "Error bond_style \"",bond_styles,"\" not implemented"
+        print ("Error bond_style \"",bond_styles,"\" not implemented")
         exit(1)
         
 #-------------------------------------------------
 def readinit(datafile): # read lammps init data file
     
-    print "Reading",datafile
+    print ("Reading",datafile)
     fi = open(datafile,"r")
     lines = fi.readlines() # read in lines all at once
     fi.close()
@@ -141,7 +141,7 @@ def readinit(datafile): # read lammps init data file
     zhi = float(lines[ln].split()[1])
     box[2] = zhi-zlo
 
-    print "Natoms",natoms," Atypes",atypes," Bonds",nbonds," Btypes",tbonds
+    print ("Natoms",natoms," Atypes",atypes," Bonds",nbonds," Btypes",tbonds)
 
     global mass
     global aatype
@@ -166,11 +166,11 @@ def readinit(datafile): # read lammps init data file
     for i in range(atypes):
         words = lines[ioff+i].split()
         if (int(words[0]) != i+1):
-            print "Error: while assigning masses at line",ln
-            print "Expecting",i+1,"got",words[0],"from",lines[ln+2]
+            print ("Error: while assigning masses at line",ln)
+            print ("Expecting",i+1,"got",words[0],"from",lines[ln+2])
             exit(1)
         mass[i] = float(words[1])
-    print "Assigned masses"
+    print ("Assigned masses")
 
     ln = findline1(lines,"Atoms")
     if (len(lines[ln+1].split())==0):
@@ -181,8 +181,8 @@ def readinit(datafile): # read lammps init data file
     for i in range(natoms):
         words = lines[ioff+i].split()
         if (int(words[0]) != i+1):
-            print "Error: while assigning atoms at line",ln
-            print "Expecting",i+1,"got",words[0],"from",lines[ln+2]
+            print ("Error: while assigning atoms at line",ln)
+            print ("Expecting",i+1,"got",words[0],"from",lines[ln+2])
             exit(1)
         aatype[i] = int(words[1])
         pos[i][0] = float(words[4])
@@ -191,7 +191,7 @@ def readinit(datafile): # read lammps init data file
         masses[i][0] = mass[aatype[i]-1] 
         masses[i][1] = mass[aatype[i]-1] 
         masses[i][2] = mass[aatype[i]-1] 
-    print "Assigned atom types and positions"
+    print ("Assigned atom types and positions")
 
     ln = findline1(lines,"Velocities")
     if (ln!=-1):
@@ -202,15 +202,15 @@ def readinit(datafile): # read lammps init data file
         for i in range(natoms):
             words = lines[ioff+i].split()
             if (int(words[0]) != i+1):
-                print "Error: while assigning velocities at line",ln
-                print "Expecting",i+1,"got",words[0],"from",lines[ln+2]
+                print ("Error: while assigning velocities at line",ln)
+                print ("Expecting",i+1,"got",words[0],"from",lines[ln+2])
                 exit(1)
             vel[i][0] = float(words[1])
             vel[i][1] = float(words[2])
             vel[i][2] = float(words[3])
-        print "Assigned Velocities"
+        print ("Assigned Velocities")
     else:
-        print "Velocities will start at zero"
+        print ("Velocities will start at zero")
 
     ln = findline1(lines,"Bonds")
     if (ln!=-1):
@@ -222,15 +222,15 @@ def readinit(datafile): # read lammps init data file
         for i in range(nbonds):
             words = lines[ioff+i].split()
             if (int(words[0]) != i+1):
-                print "Error: while assigning velocities at line",ln
-                print "Expecting",i+1,"got",words[0],"from",lines[ln+2]
+                print("Error: while assigning velocities at line",ln)
+                print("Expecting",i+1,"got",words[0],"from",lines[ln+2])
                 exit(1)
             bonds[i][0] = int(words[1])-1   # type
             bonds[i][1] = int(words[2])-1  # atom 1
             bonds[i][2] = int(words[3])-1  # atom 2
-        print "Assigned Bonds"
+        print("Assigned Bonds")
     else:
-        print "No bonds found"
+        print("No bonds found")
 
 def zero_momentum():  # zero the liniar momentum
     global masses, vel  
@@ -270,7 +270,7 @@ def force():
     if bond_style == 0:
         bond_harm()
     else:
-        print "Error bond style not found!"
+        print ("Error bond style not found!")
         exit(1)
     # bend
     # torsion
@@ -291,28 +291,30 @@ def step():
 if (len(sys.argv) == 2):  # error check that we have an input file
     infile = sys.argv[1]
 else:
-    print "No input file?"
+    print("No input file?")
     exit(1)
 
-print sys.argv
+print (sys.argv)
 readin()
-print nsteps, dt
+print (nsteps, dt)
 
 zero_momentum()  # zero the momentum
 acc = numpy.zeros((natoms,3)) # allocate and zero the acceleration
 force()
 
-print "Running dynamics"
+print("Running dynamics")
 for istep in range(nsteps):
 
     if(istep%ithermo==0):
         ke = .5*numpy.sum(masses*vel*vel)
-        print istep,ke+pbond,ke,pbond
+        print (istep,ke+pbond,ke,pbond)
 
     if(istep%idump==0):
-        mdoutput.write_dump(dumpfile,istep,natoms,pos)
+        mdoutput.write_dump(dumpfile,istep,natoms,pos,aatype)
 
     step()
         
-print "Done!"
+print("Done dynamics!")
+
+mdoutput.write_init("test.init",istep,natoms,atypes,nbonds,tbonds,box,mass,pos,vel,bonds,aatype)
 exit(0)
