@@ -7,6 +7,7 @@ import re
 import math
 
 import mdoutput  # file with output routines
+import mdbond    # file with bonding routines
 
 # assigned global variables
 global mass         # masses of each type
@@ -85,9 +86,12 @@ def readin():
     if re.search("harmonic",bond_styles,flags=re.IGNORECASE): 
         print("Reading in harmonic bonds coefficents for",tbonds,"types")
         bond_style = 0 #harmonic bond style
-        bondcoeff = numpy.zeros((tbonds,2))  # read in kbond and r0
+        bondcoeff = numpy.zeros((tbonds,2))  # read in kbond r0
         ln = findline1(lines,"bond_coeff")
         for i in range(tbonds):
+            if(lines[ln+i].split()[0] != "bond_coeff"):
+                print("Error not enough bond_coeff's")
+                exit(1)
             btype = lines[ln+i].split()[1]
             if (int(btype) != i+1):
                 print("Error wrong type in bond_coeff at line",ln+i)
@@ -96,12 +100,21 @@ def readin():
             else:
                 bondcoeff[i][0] = float(lines[ln+i].split()[2])
                 bondcoeff[i][1] = float(lines[ln+i].split()[3])
+        if(len(lines[ln+i+1].split())>0):
+            if (lines[ln+i+1].split()[0] == "bond_coeff"):
+                print("Error: too MANY bond_coeffs for types")
+                print(i,tbonds)
+                exit(1)
+
     elif re.search("morse",bond_styles,flags=re.IGNORECASE): 
         print("Reading in morse bonds coefficents for",tbonds,"types")
         bond_style = 1 # morse bond style
-        bondcoeff = numpy.zeros((tbonds,3))  # read in D alpha and r0
+        bondcoeff = numpy.zeros((tbonds,3))  # read in D alpha r0
         ln = findline1(lines,"bond_coeff")
         for i in range(tbonds):
+            if(lines[ln+i].split()[0] != "bond_coeff"):
+                print("Error not enough bond_coeff's")
+                exit(1)
             btype = lines[ln+i].split()[1]
             if (int(btype) != i+1):
                 print("Error wrong type in bond_coeff at line",ln+i)
@@ -111,6 +124,11 @@ def readin():
                 bondcoeff[i][0] = float(lines[ln+i].split()[2])
                 bondcoeff[i][1] = float(lines[ln+i].split()[3])
                 bondcoeff[i][2] = float(lines[ln+i].split()[4])
+        if(len(lines[ln+i+1].split())>0):
+            if (lines[ln+i+1].split()[0] == "bond_coeff"):
+                print("Error: too MANY bond_coeffs for types")
+                print(i,tbonds)
+                exit(1)
     else:
         print ("Error bond_style \"",bond_styles,"\" not implemented")
         exit(1)
@@ -240,13 +258,14 @@ def readinit(datafile): # read lammps init data file
                 print("Error: while assigning velocities at line",ln)
                 print("Expecting",i+1,"got",words[0],"from",lines[ln+2])
                 exit(1)
-            bonds[i][0] = int(words[1])-1   # type
+            bonds[i][0] = int(words[1])-1  # type
             bonds[i][1] = int(words[2])-1  # atom 1
             bonds[i][2] = int(words[3])-1  # atom 2
         print("Assigned Bonds")
     else:
         print("No bonds found")
 
+# ----------------------------------------------------------
 def zero_momentum():  # zero the liniar momentum
     global masses, vel  
     mom = masses*vel
@@ -254,75 +273,19 @@ def zero_momentum():  # zero the liniar momentum
     vel -= tmom # zero out
     
 #-----------------------------------------------------------
-def bond_harm(): # harmonic bondk = 2 r0 = 1.5
-    #Harmonic	k*(r-r0)^2
-    #d/dr	2*k*(r-r0)
-    #d^2/dr^2   2*k
-	
-    global pbond
-        
-    for i in range(nbonds):  # loop over bonds, 
-        ipos = pos[bonds[i][1]]
-        jpos = pos[bonds[i][2]]
-        bondk = bondcoeff[bonds[i][0]][0] # use type to bond params
-        r0 = bondcoeff[bonds[i][0]][1]
-        
-        dpos = jpos-ipos
-        r =  math.sqrt(numpy.dot(dpos,dpos))
-        dr = r-r0
-
-        pot = bondk*dr**2
-        dudr = 2.*bondk*dr
-        # du2dr2 = 2.*bondk
-        pbond += pot             # total bond
-
-        dpos = (dudr/r)*dpos
-        acc[bonds[i][1]] += dpos  # add forces back 
-        acc[bonds[i][2]] -= dpos
-
-#-----------------------------------------------------------
-def bond_morse(): # Morse harmonic bondk = 2 r0 = 1.5
-    # Morse EQ	D*(1-exp(-a(r-r0)))^2
-    # d/dr	2 D a exp(-a(r-r0))*(1-exp(-a(r-r0)))
-    # d^2/dr^2	4 a^2 D exp(-2 a (r-r0)) - 2 a^2 D exp(-a (r-r0))
-
-    global pbond
-        
-    for i in range(nbonds):  # loop over bonds, 
-        ipos = pos[bonds[i][1]]
-        jpos = pos[bonds[i][2]]
-        # use type to bond params
-        D = bondcoeff[bonds[i][0]][0]
-        alpha = bondcoeff[bonds[i][0]][1] 
-        r0 = bondcoeff[bonds[i][0]][2]
-        
-        dpos = jpos-ipos
-        r =  math.sqrt(numpy.dot(dpos,dpos))
-        dr = r-r0
-        
-        expar = math.exp(-alpha*dr)
-        pot = D*(1-expar)**2
-        pbond += pot             # total bond
-
-        dudr = 2.*D * alpha * expar *(1-expar)
-        dpos = (dudr/r)*dpos
-        
-        acc[bonds[i][1]] += dpos  # add forces back 
-        acc[bonds[i][2]] -= dpos
-
-#-----------------------------------------------------------
 def force():
-    global acc
     global masses
-    global pbond
+    global pbond, nbonds, bonds, bondcoeff
+    global pos, vel, acc
+
     acc.fill(0) # zero out forces/acceration
     # lj
     # bonds
     pbond = 0
-    if bond_style == 0:
-        bond_harm()
-    elif bond_style == 1:
-        bond_morse()
+    if bond_style == 0: # harmonic bonds
+        pbond = mdbond.bond_harm(nbonds,bonds,bondcoeff,pos,acc)
+    elif bond_style == 1: # morse bonds
+        pbond = mdbond.bond_morse(nbonds,bonds,bondcoeff,pos,acc)
     else:
         print ("Error bond style not found!")
         exit(1)

@@ -2,8 +2,8 @@ init lammps data file for morse
 
 3 atoms
 2 atom types
-2 bonds
-1 bond types
+3 bonds
+2 bond types
 
 -10 10 xlo xhi
 -10 10 ylo yhi
@@ -30,4 +30,5 @@ Bonds
 
 1 1 1 2
 2 1 1 3
+3 2 2 3
  

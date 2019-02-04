@@ -3,3 +3,4 @@ mdoutput.pyc
 test.init
 __pycache__/
 .gitignore
+mdbond.py~
