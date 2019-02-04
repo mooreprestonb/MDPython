@@ -1,3 +1,4 @@
+# output for mdpython
 def write_dump(dumpfile,istep,natoms,pos,aatype):
     global fowrite
     
