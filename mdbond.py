@@ -29,7 +29,7 @@ def bond_harm(nbonds,bonds,bondcoeff,pos,acc):
         acc[bonds[i][1]] += dpos  # add forces back 
         acc[bonds[i][2]] -= dpos
 
-    return (pbond)
+    return(pbond)
 
 #----------------Morse potential---------------------------
 def bond_morse(nbonds,bonds,bondcoeff,pos,acc): 
@@ -60,4 +60,6 @@ def bond_morse(nbonds,bonds,bondcoeff,pos,acc):
         acc[bonds[i][1]] += dpos  # add forces back 
         acc[bonds[i][2]] -= dpos
 
-    return (pbond)
+    return(pbond)
+
+#-------------------------------------------------
