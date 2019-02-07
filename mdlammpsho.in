@@ -11,22 +11,23 @@ pair_coeff 1 1 1 1  # W W
 pair_coeff 1 2 1 1  # W C 
 pair_coeff 2 2 1 1  # C C#
 
-#bond_style 	harmonic
-#bond_coeff 1 2.2 1.5 # V r0
+bond_style 	harmonic
+bond_coeff 1 2.2 1.5 # V r0
+#bond_coeff 2 1.2 2.5 # V r0
 
-bond_style morse
-bond_coeff 1 1.5 0.75 1.5 # D alpha r0
+#bond_style morse
+#bond_coeff 1 1.5 0.75 1.5 # D alpha r0
 #bond_coeff 2 1.5 0.75 2.0 # D alpha r0
 
-dump traj all xyz 10 ho.xyz
-#dump traj all atom 10 ho.lammpstrj
-#dump vel all custum id vx vy vz
+dump output all atom 10 ho.xyz
 
 thermo_style custom elapsed temp etotal ke pe evdwl ebond
+thermo 5
 
-thermo 10
-log output.log
+log ho.log
 
+#fix lm all momentum 100 linear 1 1 1
 fix vvnve all nve
+run 10
 
-run 10000
+write_data test.init

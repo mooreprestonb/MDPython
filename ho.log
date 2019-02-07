@@ -1,0 +1,47 @@
+
+#fix lm all momentum 100 linear 1 1 1
+fix vvnve all nve
+run 10
+Neighbor list info ...
+  1 neighbor list requests
+  update every 1 steps, delay 10 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 3.3
+  ghost atom cutoff = 3.3
+  binsize = 1.65 -> bins = 13 13 13
+Memory usage per processor = 6.44697 Mbytes
+Elapsed Temp TotEng KinEng PotEng E_vdwl E_bond 
+       0        0.006   0.64445239       0.0045   0.63995239            0   0.63995239 
+       5   0.37521376   0.64275159   0.28141032   0.36134127            0   0.36134127 
+      10   0.85030074   0.64057175   0.63772556 0.0028461894            0 0.0028461894 
+Loop time of 4.4717e-05 on 1 procs for 10 steps with 2 atoms
+
+Performance: 966075806.200 tau/day, 223628.659 timesteps/s
+51.4% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 1.0689e-06 | 1.0689e-06 | 1.0689e-06 |   0.0 |  2.39
+Bond    | 1.1501e-06 | 1.1501e-06 | 1.1501e-06 |   0.0 |  2.57
+Neigh   | 4.023e-06  | 4.023e-06  | 4.023e-06  |   0.0 |  9.00
+Comm    | 2.3688e-06 | 2.3688e-06 | 2.3688e-06 |   0.0 |  5.30
+Output  | 2.4813e-05 | 2.4813e-05 | 2.4813e-05 |   0.0 | 55.49
+Modify  | 2.4131e-06 | 2.4131e-06 | 2.4131e-06 |   0.0 |  5.40
+Other   |            | 8.88e-06   |            |       | 19.86
+
+Nlocal:    2 ave 2 max 2 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    0 ave 0 max 0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    0 ave 0 max 0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 0
+Ave neighs/atom = 0
+Ave special neighs/atom = 1
+Neighbor list builds = 1
+Dangerous builds = 1
+
+write_data test.init
+Total wall time: 0:00:00
