@@ -1,8 +1,11 @@
 # output for mdpython
+
+import numpy
+
 def write_dump(dumpfile,istep,natoms,pos,aatype):
     global fowrite
     
-    try: fowrite  # has fowrite be assigned yet?
+    try: fowrite  # has fowrite been assigned yet?
     except NameError:
         fowrite = open(dumpfile,"w")
 
@@ -19,6 +22,33 @@ def write_dump(dumpfile,istep,natoms,pos,aatype):
         fowrite.write(line)
     # fo.close()
     return 0
+
+#---------------------------------------------------------------------------
+def write_thermo(logfile,istep,natoms,masses,pos,vel,pot):
+
+    global fothermo
+    
+    ke = .5*numpy.sum(masses*vel*vel)
+    tpot = numpy.sum(pot)
+    temp = 2.0*ke/(3.0*natoms)
+
+    if(logfile==None):
+        if(istep==0):
+            print('#step, temp, etotal, ke, tpot, evdw, ebond')
+#        print(istep,temp,ke+tpot,ke,tpot,pot[0],pot[1])
+        print('{:8} {:8.5} {:8.5} {:8.5} {:8.5} {:8.5} {:8.5}'.format(istep,temp,(ke+tpot),ke,tpot,pot[0],pot[1]))
+#        print('{:8} {:8.5} {:8.5} {:8.5} {:8.5} {:8.5} {:8.5}'.format(istep,temp,(ke+tpot)/natoms,ke/natoms,tpot/natoms,pot[0]/natoms,pot[1]/natoms))
+    else:
+        try: fothermo  # has fothermo been assigned yet?
+        except NameError:
+            fothermo = open(logfile,"w")
+            fothermo.write('# step, temp, etotal, ke, tpot, evdw, ebond\n')
+
+        line = str(istep)+" "+str(temp)+" "+str((ke+tpot))+" "+str(ke)+" "+str(tpot)+" "+str(pot[0])+" "+str(pot[1])+"\n"        
+        fothermo.write(line)
+        
+    # fo.close()
+    return ke+tpot
 
 #---------------------------------------------------------------------------
 def write_init(initfile,istep,natoms,atypes,nbonds,tbonds,box,mass,pos,vel,bonds,aatype):

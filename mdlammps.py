@@ -3,29 +3,33 @@
 
 import sys
 import numpy
+import time
 
 import mdinput   # file with input routines
 import mdoutput  # file with output routines
-import mdbond    # file with bonding routines
 import mdlj      # file with non-bonded routines
+import mdbond    # file with bonding routines
 
 # assigned global variables
+global natoms       # number of atoms
+global atypes       # number of atom types
+global nbonds       # number of bonds
+global tbonds       # number of bond types
+global box          # box coordinates
+global pot          # potential components
 global mass         # masses of each type
+global masses       # broadcast of mass type to atoms
 global pos          # positions of each atom
 global vel          # velocities of each atom
 global acc          # acceleration of each atom
-global box          # box coordinates
-global natoms       # number of atoms
-global atypes       # number of atom types
 global aatype       # array of atom types    
-global nbonds       # number of bonds
-global tbonds       # number of bond types
-global bonds        # bonds
+global bonds        # bonds (array with type, ibond, jbond)
 global abtype       # array of bond types    
-global masses       # broadcast of mass type to atoms
+global logfile      # file to output thermodata
 
-box = numpy.zeros(3)  # initialize box array
-    
+box = numpy.zeros(3)
+pot = numpy.zeros(5)
+
 #-------------------------------------------------
 def readinit(datafile): # read lammps init data file
     
@@ -61,50 +65,49 @@ def readinit(datafile): # read lammps init data file
     mdinput.getbonds(lines,nbonds,bonds)
     
 #-------------------------------------------
-def readin():
+def readin(): # read lammps like infile
 
     global nsteps, dt, initfile, ithermo, idump, dumpfile, bond_style, bondcoeff
+    global logfile 
 
+    logfile = None
     print ("Reading",sys.argv[1])
     fi = open(sys.argv[1],"r")
     lines = fi.readlines() # read in lines all at once
     fi.close()
     
     # print lines
-    data =[0]*7
+    data =[None]*8
     mdinput.readsysvals(lines,data) # read lammps in file
-    nsteps, dt, initfile, ithermo, idump, dumpfile, bond_styles = data
-    print("nsteps, dt, initfile, ithermo, idump, dumpfile, bond_styles",data)
+    nsteps, dt, initfile, ithermo, idump, dumpfile, bond_styles, logfile = data
+    print("nsteps, dt, initfile, ithermo, idump, dumpfile, bond_styles, logfile",data)
     
     readinit(initfile)  # read initfile to get atoms bonds and types
 
     global bondcoeff 
-    bondcoeff = numpy.zeros((tbonds,3))  # read in kbond r0
-    bond_style = mdinput.getbondcoeff(lines,bond_styles,tbonds,bondcoeff)
-        
+    bondcoeff = numpy.zeros((tbonds,3))  # allocate bondcoeff
+    bond_style = mdinput.getbondcoeff(lines,bond_styles,tbonds,bondcoeff) # readin bondcoeff
+
 #-----------------------------------------------------------
-def force():
-    global masses
-    global pbond, nbonds, bonds, bondcoeff
-    global pos, vel, acc
+def force(): # get forces from potentials
+    global pot, nbonds, bonds, bondcoeff
+    global masses, pos, vel, acc
 
     acc.fill(0) # zero out forces/acceration
     # lj
+    pot[0] = 0
     # bonds
-    pbond = 0
-    if bond_style == 0: # harmonic bonds
-        pbond = mdbond.bond_harm(nbonds,bonds,bondcoeff,pos,acc)
-    elif bond_style == 1: # morse bonds
-        pbond = mdbond.bond_morse(nbonds,bonds,bondcoeff,pos,acc)
-    else:
-        print ("Error bond style not found!")
-        exit(1)
+    pot[1] = mdbond.bond(bond_style,nbonds,bonds,bondcoeff,pos,acc)
     # bend
+    pot[2] = 0
     # torsion
-    acc /= masses  # change forces into accelerations
+    pot[3] = 0
+    
+    # change forces into accelerations
+    acc /= masses  
 
 #-----------------------------------------------------------    
-def step():
+def step(): # velocity verlet (using 1/2 steps)
     global pos, vel, acc, dt
     # print istep,pos,vel,acc
     vel += acc*dt/2.0
@@ -115,33 +118,38 @@ def step():
 #-----------------------------------------------------------    
 
 # read command line for input file
-if (len(sys.argv) == 2):  # error check that we have an input file
-    infile = sys.argv[1]
-else:
-    print("No input file?")
+if (len(sys.argv) != 2):  # error check that we have an input file
+    print("No input file? or wrong number of arguments")
     exit(1)
-
 print (sys.argv)
-readin()
-print (nsteps, dt)
+
+readin() # read infile
 
 # inital force and adjustments
 mdlj.zero_momentum(masses,vel)  # zero the momentum
 force()
+#teng = mdoutput.write_thermo(logfile,0,natoms,masses,pos,vel,pot)
+
+itime = 10 # report total energy every 1 seconds
+tnow = time.time()
+ttime = tnow
 
 print("Running dynamics")
 for istep in range(nsteps):
 
     if(istep%ithermo==0):
-        ke = .5*numpy.sum(masses*vel*vel)
-        print (istep,ke+pbond,ke,pbond)
+        teng = mdoutput.write_thermo(logfile,istep,natoms,masses,pos,vel,pot)
 
-    if(istep%idump==0):
+    if(istep%idump==0): # dump to xyz file so we can see this in lammps
         mdoutput.write_dump(dumpfile,istep,natoms,pos,aatype)
 
-    step()
+    if(itime < time.time()-tnow):
+        print('step = {}/{} = {:.4f}%, teng = {:g}, time = {:g}'.format(istep,nsteps,istep/nsteps,teng,time.time()-ttime))
+        tnow = time.time()
         
-print("Done dynamics!")
-
+    step() # take a step
+        
+teng = mdoutput.write_thermo(logfile,istep+1,natoms,masses,pos,vel,pot)
+print('Done dynamics! total time = {:g} seconds'.format(time.time()-ttime))
 mdoutput.write_init("test.init",istep,natoms,atypes,nbonds,tbonds,box,mass,pos,vel,bonds,aatype)
 exit(0)

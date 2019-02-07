@@ -4,3 +4,10 @@ test.init
 __pycache__/
 .gitignore
 mdbond.py~
+2atomsho.dat
+2atoms.log
+junk
+log.lammps
+*#*
+*~
+output.log

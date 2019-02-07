@@ -21,11 +21,12 @@ def bond_harm(nbonds,bonds,bondcoeff,pos,acc):
         dr = r-r0
 
         pot = bondk*dr**2
-        dudr = 2.*bondk*dr
-        # du2dr2 = 2.*bondk
         pbond += pot             # total bond
 
+        dudr = 2.*bondk*dr
         dpos = (dudr/r)*dpos
+        # du2dr2 = 2.*bondk
+
         acc[bonds[i][1]] += dpos  # add forces back 
         acc[bonds[i][2]] -= dpos
 
@@ -63,3 +64,14 @@ def bond_morse(nbonds,bonds,bondcoeff,pos,acc):
     return(pbond)
 
 #-------------------------------------------------
+def bond(bond_style,nbonds,bonds,bondcoeff,pos,acc):
+    pbond = 0
+    if bond_style == 0: # harmonic bonds
+        pbond = bond_harm(nbonds,bonds,bondcoeff,pos,acc)
+    elif bond_style == 1: # morse bonds
+        pbond = bond_morse(nbonds,bonds,bondcoeff,pos,acc)
+    else:
+        print ("Error bond style not found!")
+        exit(1)
+    return pbond
+

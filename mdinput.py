@@ -60,8 +60,8 @@ def readinvals(lines,data): # read lammps init data file
     zhi = float(lines[ln].split()[1])
     data[6] = zhi-zlo
 
-    print("Natoms",data[0]," Atypes",data[1]," Bonds",data[2]," Btypes",data[3])
-    print("Box",data[4],data[5],data[6])
+    #print("Natoms",data[0]," Atypes",data[1]," Bonds",data[2]," Btypes",data[3])
+    #print("Box",data[4],data[5],data[6])
 
 #----------------------------------------------------------------
 def getmasses(lines,atypes,mass):
@@ -204,14 +204,13 @@ def readsysvals(lines,data): # read lammps init data file
     ln = findline1(lines,"run")
     data[0] = int(lines[ln].split()[1])
 
-    global dt
+    # global dt
     ln = findline1(lines,"timestep")
     data[1] = float(lines[ln].split()[1])
 
     # global initfile
     ln = findline1(lines,"read_data")
     data[2] = (lines[ln].split()[1])
-    #readinit(initfile)        # read initfile to get atoms bonds and types
 
     # global ithermo
     ln = findline1(lines,"thermo")
@@ -226,4 +225,9 @@ def readsysvals(lines,data): # read lammps init data file
     # global bond_style
     ln = findline1(lines,"bond_style")
     data[6] = lines[ln].split()[1]
+
+    # global logfile
+    ln = findline1(lines,"log")
+    if(ln!=-1):
+        data[7] = lines[ln].split()[1]
 
