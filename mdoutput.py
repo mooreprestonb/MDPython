@@ -99,3 +99,5 @@ def write_init(initfile,istep,natoms,atypes,nbonds,tbonds,box,mass,pos,vel,bonds
     foinit.write("\n")
     foinit.close()
     return 0
+
+def write_inm()

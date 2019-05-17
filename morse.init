@@ -22,8 +22,10 @@ Atoms # full index type group charge x y z nx ny nz
 
 Velocities
 
-1 0.0 -0.1 0
-2 0.0  0.1 0
+1 0.0  0.0 0
+2 0.0  0.0 0
+#1 0.0 -0.1 0
+#2 0.0  0.1 0
 #3 0.0  0.0 0
 
 Bonds

@@ -32,6 +32,26 @@ def bond_harm(nbonds,bonds,bondcoeff,pos,acc):
 
     return(pbond)
 
+#--------------------INM for harmonic-----------------------------
+def inm(istep,natoms,masses,pos,pot,hessian):
+    # create hessian
+    #Harmonic    k*(r-r0)^2
+    #d/dr    2*k*(r-r0)
+    #d^2/dr^2   2*k
+
+    pbond = 0
+
+hessian[0][0] = 
+hessian[0][1] = 
+hessian[0][2] =
+hessian[0][3] =
+hessian[0][4] =
+hessian[0][5] = 
+
+hessian[1][0] = 
+hessian[1][1] = 
+
+
 #----------------Morse potential---------------------------
 def bond_morse(nbonds,bonds,bondcoeff,pos,acc): 
     # Morse EQ	D*(1-exp(-a(r-r0)))^2
@@ -74,4 +94,9 @@ def bond(bond_style,nbonds,bonds,bondcoeff,pos,acc):
         print ("Error bond style not found!")
         exit(1)
     return pbond
+
+
+
+    
+    
 

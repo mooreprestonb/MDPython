@@ -26,9 +26,11 @@ global aatype       # array of atom types
 global bonds        # bonds (array with type, ibond, jbond)
 global abtype       # array of bond types    
 global logfile      # file to output thermodata
+global hessian      # hessian matrix
 
 box = numpy.zeros(3)
 pot = numpy.zeros(5)
+
 
 #-------------------------------------------------
 def readinit(datafile): # read lammps init data file
@@ -57,7 +59,8 @@ def readinit(datafile): # read lammps init data file
     vel = numpy.zeros((natoms,3))
     acc = numpy.zeros((natoms,3))
     masses = numpy.zeros((natoms,3))
-    bonds =numpy.zeros((nbonds,3),dtype=int)
+    bonds = numpy.zeros((nbonds,3),dtype=int)
+    hessian = numpy.zeros((3*natoms,3*natoms))
 
     mdinput.getmasses(lines,atypes,mass)
     mdinput.getatoms(lines,natoms,aatype,pos,mass,masses)
@@ -128,14 +131,20 @@ readin() # read infile
 # inital force and adjustments
 mdlj.zero_momentum(masses,vel)  # zero the momentum
 force()
-#teng = mdoutput.write_thermo(logfile,0,natoms,masses,pos,vel,pot)
+teng = mdoutput.write_thermo(logfile,0,natoms,masses,pos,vel,pot)
 
 itime = 10 # report total energy every 1 seconds
 tnow = time.time()
 ttime = tnow
 
 print("Running dynamics")
-for istep in range(nsteps):
+for istep in range(1,nsteps+1):
+
+    step() # take a step
+
+    if(istep%inmo==0):
+        mdbond.inm(istep,natoms,masses,pos,pot,hessian)
+        mdoutput.write_inm(istep,hessian)
 
     if(istep%ithermo==0):
         teng = mdoutput.write_thermo(logfile,istep,natoms,masses,pos,vel,pot)
@@ -147,9 +156,7 @@ for istep in range(nsteps):
         print('step = {}/{} = {:.4f}%, teng = {:g}, time = {:g}'.format(istep,nsteps,istep/nsteps,teng,time.time()-ttime))
         tnow = time.time()
         
-    step() # take a step
-        
-teng = mdoutput.write_thermo(logfile,istep+1,natoms,masses,pos,vel,pot)
 print('Done dynamics! total time = {:g} seconds'.format(time.time()-ttime))
-mdoutput.write_init("test.init",istep,natoms,atypes,nbonds,tbonds,box,mass,pos,vel,bonds,aatype)
+teng = mdoutput.write_thermo(logfile,istep+1,natoms,masses,pos,vel,pot)
+mdoutput.write_init("test.init",istep-1,natoms,atypes,nbonds,tbonds,box,mass,pos,vel,bonds,aatype)
 exit(0)
