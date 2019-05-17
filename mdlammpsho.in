@@ -2,7 +2,7 @@
 
 units lj
 atom_style full
-timestep 0.05
+timestep 0.01
 
 read_data  morse.init
 
@@ -22,12 +22,12 @@ bond_coeff 1 2.2 1.5 # V r0
 dump output all atom 10 ho.xyz
 
 thermo_style custom elapsed temp etotal ke pe evdwl ebond
-thermo 5
+thermo 10 
 
 log ho.log
 
 #fix lm all momentum 100 linear 1 1 1
 fix vvnve all nve
-run 10
+run 10000
 
 write_data test.init
