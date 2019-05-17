@@ -41,15 +41,15 @@ def inm(istep,natoms,masses,pos,pot,hessian):
 
     pbond = 0
 
-hessian[0][0] = 
-hessian[0][1] = 
-hessian[0][2] =
-hessian[0][3] =
-hessian[0][4] =
-hessian[0][5] = 
-
-hessian[1][0] = 
-hessian[1][1] = 
+    hessian[0][0] = 0
+    hessian[0][1] = 1
+    hessian[0][2] = 2
+    hessian[0][3] = 3
+    hessian[0][4] = 4
+    hessian[0][5] = 5
+    
+    hessian[1][0] = 6
+    hessian[1][1] = 7
 
 
 #----------------Morse potential---------------------------

@@ -100,4 +100,5 @@ def write_init(initfile,istep,natoms,atypes,nbonds,tbonds,box,mass,pos,vel,bonds
     foinit.close()
     return 0
 
-def write_inm()
+def write_inm(istep,hessian):
+    print(istep,hessian)

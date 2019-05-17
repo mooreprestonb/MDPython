@@ -5,6 +5,7 @@ import sys
 import numpy
 import time
 
+import mdglobal  # file with global variables
 import mdinput   # file with input routines
 import mdoutput  # file with output routines
 import mdlj      # file with non-bonded routines
@@ -24,13 +25,12 @@ global vel          # velocities of each atom
 global acc          # acceleration of each atom
 global aatype       # array of atom types    
 global bonds        # bonds (array with type, ibond, jbond)
+global hessian      # hessian matrix
 global abtype       # array of bond types    
 global logfile      # file to output thermodata
-global hessian      # hessian matrix
 
 box = numpy.zeros(3)
 pot = numpy.zeros(5)
-
 
 #-------------------------------------------------
 def readinit(datafile): # read lammps init data file
@@ -51,7 +51,7 @@ def readinit(datafile): # read lammps init data file
     print("Box",box)
 
     # allocate arrays from data
-    global mass, aatype, pos, vel, acc, masses, bonds
+    global mass, aatype, pos, vel, acc, masses, bonds, hessian
     
     mass = numpy.zeros(atypes)
     aatype = numpy.zeros(natoms,dtype=int)
@@ -66,7 +66,7 @@ def readinit(datafile): # read lammps init data file
     mdinput.getatoms(lines,natoms,aatype,pos,mass,masses)
     mdinput.getvel(lines,natoms,vel)
     mdinput.getbonds(lines,nbonds,bonds)
-    
+
 #-------------------------------------------
 def readin(): # read lammps like infile
 
@@ -134,6 +134,7 @@ force()
 teng = mdoutput.write_thermo(logfile,0,natoms,masses,pos,vel,pot)
 
 itime = 10 # report total energy every 1 seconds
+inmo = 10 # write hessian ever 10 steps
 tnow = time.time()
 ttime = tnow
 
@@ -143,7 +144,7 @@ for istep in range(1,nsteps+1):
     step() # take a step
 
     if(istep%inmo==0):
-        mdbond.inm(istep,natoms,masses,pos,pot,hessian)
+#        mdbond.inm(istep,natoms,masses,pos,pot,hessian)
         mdoutput.write_inm(istep,hessian)
 
     if(istep%ithermo==0):
