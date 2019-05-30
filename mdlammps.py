@@ -100,7 +100,7 @@ def force(): # get forces from potentials
     # lj
     pot[0] = 0
     # bonds
-    pot[1] = mdbond.bond(bond_style,nbonds,bonds,bondcoeff,pos,acc)
+    pot[1] = mdbond.bond(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses)
     # bend
     pot[2] = 0
     # torsion

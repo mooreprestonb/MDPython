@@ -21,7 +21,7 @@ def bond_harm(nbonds,bonds,bondcoeff,pos,acc):
         dr = r-r0
 
         pot = bondk*dr**2
-        pbond += pot             # total bond
+        pbond += pot             # total bond potential
 
         dudr = 2.*bondk*dr
         dpos = (dudr/r)*dpos
@@ -80,11 +80,84 @@ def bond_morse(nbonds,bonds,bondcoeff,pos,acc):
         
         acc[bonds[i][1]] += dpos  # add forces back 
         acc[bonds[i][2]] -= dpos
-
     return(pbond)
 
+#--------------Numerical forces  dU/dx -------------------------------
+def bond_num(bond_style,nbonds,bonds,bondcoeff,pos,acc):
+
+    pbond = 0
+    print(pos.size)
+    acc_num = numpy.zeros(pos.size)
+    h = .00000001
+    
+    print("Numerical derivatives")
+    post = pos.reshape(pos.size)
+    # print(post.reshape((-1,3)))
+    for i in range(post.size):
+        tpos = post[i]
+        post[i] = tpos - h
+        pbondm1 = bond_harm(nbonds,bonds,bondcoeff,post.reshape(-1,3),acc)
+        #pbondm1 = bond_morse(nbonds,bonds,bondcoeff,post.reshape(-1,3),acc)
+        post[i] = tpos + h
+        pbond1 = bond_harm(nbonds,bonds,bondcoeff,post.reshape(-1,3),acc)
+        #pbond1 = bond_morse(nbonds,bonds,bondcoeff,post.reshape(-1,3),acc)
+        post[i] = tpos
+        acc_num[i] = -(pbond1-pbondm1)/(h*2.0)
+        
+    print(acc_num.reshape(-1,3))
+    return pbond
+
+#--------------Numerical forces  dU/dx -------------------------------
+def bond_hess_num(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses):
+
+    pbond = 0
+    print(pos.size)
+    hess_num = numpy.zeros((pos.size,pos.size))
+    h = .000001
+    ma = masses.reshape(pos.size)
+    
+    print("Numerical 2nd derivatives")
+    post = pos.reshape(pos.size)
+    # print(post.reshape((-1,3)))
+    for i in range(post.size):
+        tpos = post[i]
+        pbond = bond_harm(nbonds,bonds,bondcoeff,post.reshape(-1,3),acc)        
+        #pbondm1 = bond_morse(nbonds,bonds,bondcoeff,post.reshape(-1,3),acc)
+        post[i] = tpos - h
+        pbondm1 = bond_harm(nbonds,bonds,bondcoeff,post.reshape(-1,3),acc)
+        #pbondm1 = bond_morse(nbonds,bonds,bondcoeff,post.reshape(-1,3),acc)
+        post[i] = tpos + h
+        pbond1 = bond_harm(nbonds,bonds,bondcoeff,post.reshape(-1,3),acc)
+        #pbond1 = bond_morse(nbonds,bonds,bondcoeff,post.reshape(-1,3),acc)
+        post[i] = tpos
+        hess_num[i][i] = (pbond1+pbondm1-2.0*pbond)/(h*h*ma[i]) #diagonal
+        for j in range(i+1,post.size):  # off diagonals
+            tposi = post[i]
+            tposj = post[j]
+            post[i] = tposi - h
+            post[j] = tposj - h
+            pbondm1m1 = bond_harm(nbonds,bonds,bondcoeff,post.reshape(-1,3),acc)
+            post[j] = tposj + h
+            pbondm11 = bond_harm(nbonds,bonds,bondcoeff,post.reshape(-1,3),acc)
+            post[i] = tposi + h
+            pbond11 = bond_harm(nbonds,bonds,bondcoeff,post.reshape(-1,3),acc)
+            post[j] = tposj - h
+            pbond1m1 = bond_harm(nbonds,bonds,bondcoeff,post.reshape(-1,3),acc)
+
+            hess_num[i][j] = (pbond11+pbondm1m1-pbondm11-pbond1m1)/(h*h*4.0)
+            hess_num[i][j] /= math.sqrt(ma[i]*ma[j])
+            hess_num[j][i] = hess_num[i][j]
+            post[i] = tposi
+            post[j] = tposj
+        
+    print(hess_num)
+    w,v = numpy.linalg.eig(hess_num)
+    print(w)
+    print(v)
+    return pbond
+
 #-------------------------------------------------
-def bond(bond_style,nbonds,bonds,bondcoeff,pos,acc):
+def bond(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses):
     pbond = 0
     if bond_style == 0: # harmonic bonds
         pbond = bond_harm(nbonds,bonds,bondcoeff,pos,acc)
@@ -93,7 +166,14 @@ def bond(bond_style,nbonds,bonds,bondcoeff,pos,acc):
     else:
         print ("Error bond style not found!")
         exit(1)
+#check forces
+    print(acc)
+    bond_num(bond_style,nbonds,bonds,bondcoeff,pos,acc)
+    bond_hess_num(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses)
+    exit(1)
+#endcheck
     return pbond
+
 
 
 
