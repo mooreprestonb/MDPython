@@ -33,8 +33,25 @@ def bond_harm(nbonds,bonds,bondcoeff,pos,acc):
     return(pbond)
 
 #--------------------INM for harmonic-----------------------------
-def inm(istep,natoms,masses,pos,pot,hessian):
+def inm(bonds,bondcoeff,hessian,pos):
+    # create hessian
+     #Harmonic    k*(r-r0)^2
+    #d/dr    2*k*(r-r0)
+    #d^2/dr^2   2*k
 
+    pbond = 0
+    k = bondcoeff[bonds[0][0]][0]
+    r0 = bondcoeff[bonds[0][0]][1]
+
+    x0 = pos[0][0]
+    y0 = pos[0][1]
+    z0 = pos[0][2]
+
+    x1 = pos[1][0]
+    y1 = pos[1][1]
+    z1 = pos[1][2]
+
+    r = math.sqrt((x1-x0)**2+(y1-y0)**2+(z1-z0)**2)
 #0 1 2
 #3 4 5
 #6 7 8
@@ -42,25 +59,18 @@ def inm(istep,natoms,masses,pos,pot,hessian):
     hessian[0][0] = k-((r0*k*(y0**2)+(z0**2))/(r**3))
     hessian[0][1] = r0*k*x0*y0/(r**3)
     hessian[0][2] = r0*k*x0*z0/(r**3)
-    hessian[0][3] = r0*k*x0*y0/(r**3)
-    hessian[0][4] = k-((r0*k*(x0**2)+(z0**2))/(r**3))
-    hessian[0][5] = r0*k*z0*y0/(r**3)
-    hessian[0][6] = r0*k*x0*z0/(r**3)
-    hessian[0][7] = r0*k*z0*y0/(r**3)
-    hessian[0][8] = k-((r0*k*(y0**2)+(x0**2))/(r**3))
+    hessian[0][3] = r0*k*x0*x1/(r**3)
+    hessian[0][4] = r0*k*x0*y1/(r**3)
+    hessian[0][5] = r0*k*x0*z1/(r**3)
 
-    hessian[1][0] = k-((r0*k*(y1**2)+(z1**2))/(r**3)) 
-    hessian[1][1] = r0*k*x1*y1/(r**3)
-    hessian[1][2] = r0*k*x1*z1/(r**3)
-    hessian[1][3] = r0*k*x1*y1/(r**3)
-    hessian[1][4] = k-((r0*k*(x1**2)+(z1**2))/(r**3))
-    hessian[1][5] = r0*k*z1*y1/(r**3)
-    hessian[1][6] = r0*k*x1*z1/(r**3)
-    hessian[1][7] = r0*k*z1*y1/(r**3)
-    hessian[1][8] = k-((r0*k*(y1**2)+(x1**2))/(r**3))
-
-
-#---------
+#    hessian[1][0] = k-((r0*k*(y1**2)+(z1**2))/(r**3))
+#    hessian[1][1] = r0*k*x1*y1/(r**3)
+#    hessian[1][2] = r0*k*x1*z1/(r**3)
+#    hessian[1][3] = r0*k*x1*y1/(r**3)
+#    hessian[1][4] = k-((r0*k*(x1**2)+(z1**2))/(r**3))
+#    hessian[1][5] = r0*k*z1*y1/(r**3)
+#    hessian[1][6] = r0*k*x1*z1/(r**3)
+#    hessian[1][7] = r0*k*z1*y1/(r**3)
 
 #----------------Morse potential---------------------------
 def bond_morse(nbonds,bonds,bondcoeff,pos,acc):
@@ -163,9 +173,9 @@ def bond_hess_num(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses):
             post[j] = tposj
 
     print(hess_num)
-    w,v = numpy.linalg.eig(hess_num)
-    print(w)
-    print(v)
+    #w,v = numpy.linalg.eig(hess_num)
+    #print(w)
+    #print(v)
     return pbond
 
 #-------------------------------------------------
@@ -182,6 +192,11 @@ def bond(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses):
     print(acc)
     bond_num(bond_style,nbonds,bonds,bondcoeff,pos,acc)
     bond_hess_num(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses)
+
+    print(pos.size)
+    hessian = numpy.zeros((pos.size,pos.size))
+    inm(bonds,bondcoeff,hessian,pos)
+    print(hessian)
     exit(1)
 #endcheck
     return pbond
