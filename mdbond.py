@@ -36,17 +36,17 @@ def bond_harm(nbonds,bonds,bondcoeff,pos,acc):
 def inm(nbonds,bonds,bondcoeff,pos,masses,hessian):
 
     # create hessian
-     #Harmonic    k*(r-r0)^2
-    #d/dr    2*k*(r-r0)
-    #d^2/dr^2   2*k
+    # Harmonic    k*(r-r0)^2
+    # d/dr    2*k*(r-r0)
+    # d^2/dr^2   2*k
 
     pbond = 0
 
     for i in range(nbonds):  # loop over bonds,
-        itype = bonds[i][0]  # bond type (in this case harmonic 
+        itype = bonds[i][0]  # bond type (in this case harmonic
         idx = bonds[i][1] # which atoms are involved in this bonds
         jdx = bonds[i][2]
-        ipos = pos[idx]  
+        ipos = pos[idx]
         jpos = pos[jdx]
         k = bondcoeff[itype][0] # use type to bond params
         r0 = bondcoeff[itype][1]
@@ -65,13 +65,28 @@ def inm(nbonds,bonds,bondcoeff,pos,masses,hessian):
         # d^2/ dx0 dxi
         idx3 = idx*3
         jdx3 = jdx*3
-        hessian[idx3][0] = k-((r0*k*(y0**2)+(z0**2))/(r**3))
-        hessian[idx3][1] = r0*k*x0*y0/(r**3)
-        hessian[idx3][2] = r0*k*x0*z0/(r**3)
-        hessian[idx3][jdx3  ] = r0*k*x0*x1/(r**3)
-        hessian[idx3][jdx3+1] = r0*k*x0*y1/(r**3)
-        hessian[idx3][jdx3+2] = r0*k*x0*z1/(r**3)
+        #hessian[idx3][0] = k-((r0*k*(y0**2)+(z0**2))/(r**3))
+        #hessian[idx3][1] = r0*k*x0*y0/(r**3)
+        #hessian[idx3][2] = r0*k*x0*z0/(r**3)
+        #hessian[idx3][jdx3  ] = r0*k*x0*x1/(r**3)
+        #hessian[idx3][jdx3+1] = r0*k*x0*y1/(r**3)
+        #hessian[idx3][jdx3+2] = r0*k*x0*z1/(r**3)
 
+        #d^2 /dx^2 U(r(x,y)) = r" U' + r'^2 U"
+        #d^2/ dx dy U(r(x,y)) = d^2/dxdy r dU/dr + dr/dx dr/dy d^2 U/dr^2
+
+        dudr = 2*k*(r-r0)
+        du2dr2 = 2*k
+
+        drdx0 = (x1-x0)/r
+        drdy0 = (y1-y0)/r
+        dr2dxy = -((x1-x0)*(y1-y0))/r**3
+        #dr2dx2 = -((y1-y0)*(y1-y0))/r**3
+        dr2dx2 = (1/r)-((x1-x0)**2)/r**3
+
+        hessian[0][0] = dr2dx2*dudr + drdx0*drdx0*du2dr2
+        hessian[0][1] = dr2dxy*dudr + drdx0*drdy0*du2dr2
+        #d^2/da^2 = k/2 [ 2-dx^2*(r-r0/r^3 + 2 (r-r0)/r + 2 dx^2/r^2]
     #    hessian[1][0] = k-((r0*k*(y1**2)+(z1**2))/(r**3))
     #    hessian[1][1] = r0*k*x1*y1/(r**3)
     #    hessian[1][2] = r0*k*x1*z1/(r**3)
@@ -82,14 +97,13 @@ def inm(nbonds,bonds,bondcoeff,pos,masses,hessian):
     #    hessian[1][7] = r0*k*z1*y1/(r**3)
 
     # mass weight
-    print(hessian)
     ma = masses.reshape(pos.size) # make it easy to mass weight
-    for i in range(pos.size): 
+    for i in range(pos.size):
         hessian[i][i] /= ma[i] # diagonal elements
         for j in range(i+1,pos.size):
             mw = math.sqrt(ma[i]*ma[j])
             hessian[i][j] /= mw # off diagonal
-            hessian[j][i] /= mw # off diagonal
+            hessian[j][i] = hessian[i][j] # off diagonal
 
 
 #----------------Morse potential---------------------------
