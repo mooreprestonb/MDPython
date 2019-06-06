@@ -51,19 +51,17 @@ def inm(nbonds,bonds,bondcoeff,pos,masses,hessian):
         k = bondcoeff[itype][0] # use type to bond params
         r0 = bondcoeff[itype][1]
 
-        #x0 = ipos[0]
-        #y0 = ipos[1]
-        #z0 = ipos[2]
-        #x1 = jpos[0]
-        #y1 = jpos[1]
-        #z1 = jpos[2]
-        #r = math.sqrt((x1-x0)**2+(y1-y0)**2+(z1-z0)**2)
+        x0 = ipos[0]
+        y0 = ipos[1]
+        z0 = ipos[2]
 
-        # replaced above with
-        rv = jpos - ipos
-        r = math.sqrt(numpy.dot(rv,rv))
+        x1 = jpos[0]
+        y1 = jpos[1]
+        z1 = jpos[2]
+        r = math.sqrt((x1-x0)**2+(y1-y0)**2+(z1-z0)**2)
 
-        print (itype,idx,jdx,ipos,jpos,k,r0,r,rv)
+
+        print (itype,idx,jdx,ipos,jpos,k,r0,r)
 
         # d^2/ dx0 dxi
         idx3 = idx*3
@@ -80,25 +78,51 @@ def inm(nbonds,bonds,bondcoeff,pos,masses,hessian):
 
         dudr = 2*k*(r-r0)
         du2dr2 = 2*k
+        drdx = (x1-x0)/r
+        drdy = (y1-y0)/r
+        drdz = (z1-z0)/r
 
-        drdx0 = rv[0]/r
-        drdy0 = rv[1]/r
-        dr2dxy = -(rv[0]*rv[1])/r**3
-        #dr2dx2 = -((y1-y0)*(y1-y0))/r**3
-        dr2dx2 = (1/r)-(rv[0]*rv[0])/r**3
+        dr2dxz = -((x1-x0)*(z1-z0))/r**3
+        dr2dyz = -((y1-y0)*(z1-z0))/r**3
+        dr2dxy = -((x1-x0)*(y1-y0))/r**3
 
-        hessian[0][0] = dr2dx2*dudr + drdx0*drdx0*du2dr2
-        hessian[0][1] = dr2dxy*dudr + drdx0*drdy0*du2dr2
-        #d^2/da^2 = k/2 [ 2-dx^2*(r-r0/r^3 + 2 (r-r0)/r + 2 dx^2/r^2]
-    #    hessian[1][0] = k-((r0*k*(y1**2)+(z1**2))/(r**3))
-    #    hessian[1][1] = r0*k*x1*y1/(r**3)
-    #    hessian[1][2] = r0*k*x1*z1/(r**3)
-    #    hessian[1][3] = r0*k*x1*y1/(r**3)
-    #    hessian[1][4] = k-((r0*k*(x1**2)+(z1**2))/(r**3))
-    #    hessian[1][5] = r0*k*z1*y1/(r**3)
-    #    hessian[1][6] = r0*k*x1*z1/(r**3)
-    #    hessian[1][7] = r0*k*z1*y1/(r**3)
+        dr2dx2 = (1/r)-((x1-x0)**2)/r**3
+        dr2dy2 = (1/r)-((y1-y0)**2)/r**3
+        dr2dz2 = (1/r)-((z1-z0)**2)/r**3
+# 0  1  2  3  4  5
+# 6  7  8  9  10 11
+# 12 13 14 15 16 17
+# 18 19 20 21 22 23
+# 24 25 26 27 28 29
+# 30 31 32 33 34 35
+        hessian[0][0] = dr2dx2*dudr + drdx*drdx*du2dr2
+        hessian[0][1] = dr2dxy*dudr + drdx*drdy*du2dr2
+        hessian[0][2] = dr2dxz*dudr + drdx*drdz*du2dr2
+        hessian[0][3] = -dr2dx2*dudr - drdx*drdx*du2dr2 #same as [0][0]?
+        hessian[0][4] = -dr2dxy*dudr - drdy*drdx*du2dr2
+        hessian[0][5] = -dr2dxz*dudr - drdz*drdx*du2dr2
 
+        hessian[1][1] = dr2dy2*dudr + drdy*drdy*du2dr2
+        hessian[1][2] = dr2dyz*dudr + drdy*drdz*du2dr2
+        hessian[1][3] = -dr2dxy*dudr - drdx*drdy*du2dr2
+        hessian[1][4] = -dr2dy2*dudr - drdy*drdy*du2dr2
+        hessian[1][5] = -dr2dyz*dudr - drdz*drdy*du2dr2
+
+        hessian[2][2] = dr2dz2*dudr + drdz*drdz*du2dr2
+        hessian[2][3] = -dr2dxz*dudr - drdx*drdz*du2dr2
+        hessian[2][4] = -dr2dyz*dudr - drdy*drdz*du2dr2
+        hessian[2][5] = -dr2dz2*dudr - drdz*drdz*du2dr2
+
+        hessian[3][3] = dr2dx2*dudr + drdx*drdx*du2dr2
+        hessian[3][4] = dr2dxy*dudr + drdy*drdx*du2dr2
+        hessian[3][5] = dr2dxz*dudr + drdz*drdx*du2dr2
+
+        hessian[4][4] = dr2dy2*dudr + drdy*drdy*du2dr2
+        hessian[4][5] = dr2dyz*dudr + drdy*drdz*du2dr2
+
+        hessian[5][5] = dr2dz2*dudr + drdz*drdz*du2dr2
+
+#------
     # mass weight
     ma = masses.reshape(pos.size) # make it easy to mass weight
     for i in range(pos.size):
@@ -211,9 +235,9 @@ def bond_hess_num(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses):
             post[j] = tposj
 
     print(hess_num)
-    #w,v = numpy.linalg.eig(hess_num)
-    #print(w)
-    #print(v)
+    w,v = numpy.linalg.eig(hess_num)
+    print(w)
+    print(v)
     return pbond
 
 #-------------------------------------------------
@@ -235,6 +259,9 @@ def bond(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses):
     hessian = numpy.zeros((pos.size,pos.size))
     inm(nbonds,bonds,bondcoeff,pos,masses,hessian)
     print(hessian)
+    w,v = numpy.linalg.eig(hessian)
+    print(w)
+    print(v)
     exit(1)
 #endcheck
     return pbond
