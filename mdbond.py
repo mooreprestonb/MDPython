@@ -51,16 +51,19 @@ def inm(nbonds,bonds,bondcoeff,pos,masses,hessian):
         k = bondcoeff[itype][0] # use type to bond params
         r0 = bondcoeff[itype][1]
 
-        x0 = ipos[0]
-        y0 = ipos[1]
-        z0 = ipos[2]
+        #x0 = ipos[0]
+        #y0 = ipos[1]
+        #z0 = ipos[2]
+        #x1 = jpos[0]
+        #y1 = jpos[1]
+        #z1 = jpos[2]
+        #r = math.sqrt((x1-x0)**2+(y1-y0)**2+(z1-z0)**2)
 
-        x1 = jpos[0]
-        y1 = jpos[1]
-        z1 = jpos[2]
+        # replaced above with
+        rv = jpos - ipos
+        r = math.sqrt(numpy.dot(rv,rv))
 
-        r = math.sqrt((x1-x0)**2+(y1-y0)**2+(z1-z0)**2)
-        print (itype,idx,jdx,ipos,jpos,k,r0,r)
+        print (itype,idx,jdx,ipos,jpos,k,r0,r,rv)
 
         # d^2/ dx0 dxi
         idx3 = idx*3
@@ -78,11 +81,11 @@ def inm(nbonds,bonds,bondcoeff,pos,masses,hessian):
         dudr = 2*k*(r-r0)
         du2dr2 = 2*k
 
-        drdx0 = (x1-x0)/r
-        drdy0 = (y1-y0)/r
-        dr2dxy = -((x1-x0)*(y1-y0))/r**3
+        drdx0 = rv[0]/r
+        drdy0 = rv[1]/r
+        dr2dxy = -(rv[0]*rv[1])/r**3
         #dr2dx2 = -((y1-y0)*(y1-y0))/r**3
-        dr2dx2 = (1/r)-((x1-x0)**2)/r**3
+        dr2dx2 = (1/r)-(rv[0]*rv[0])/r**3
 
         hessian[0][0] = dr2dx2*dudr + drdx0*drdx0*du2dr2
         hessian[0][1] = dr2dxy*dudr + drdx0*drdy0*du2dr2
