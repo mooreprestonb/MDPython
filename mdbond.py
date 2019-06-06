@@ -46,84 +46,89 @@ def inm(nbonds,bonds,bondcoeff,pos,masses,hessian):
         itype = bonds[i][0]  # bond type (in this case harmonic
         idx = bonds[i][1] # which atoms are involved in this bonds
         jdx = bonds[i][2]
-        ipos = pos[idx]
-        jpos = pos[jdx]
+        posi = pos[idx]
+        posj = pos[jdx]
         k = bondcoeff[itype][0] # use type to bond params
         r0 = bondcoeff[itype][1]
 
-        x0 = ipos[0]
-        y0 = ipos[1]
-        z0 = ipos[2]
-
-        x1 = jpos[0]
-        y1 = jpos[1]
-        z1 = jpos[2]
-        r = math.sqrt((x1-x0)**2+(y1-y0)**2+(z1-z0)**2)
-
-
-        print (itype,idx,jdx,ipos,jpos,k,r0,r)
+        rv = posj-posi
+        r2 = numpy.dot(rv,rv)
+        r = math.sqrt(r2)
+#        print (itype,idx,jdx,posi,posj,k,r0,r)
 
         # d^2/ dx0 dxi
         idx3 = idx*3
         jdx3 = jdx*3
-        #hessian[idx3][0] = k-((r0*k*(y0**2)+(z0**2))/(r**3))
-        #hessian[idx3][1] = r0*k*x0*y0/(r**3)
-        #hessian[idx3][2] = r0*k*x0*z0/(r**3)
-        #hessian[idx3][jdx3  ] = r0*k*x0*x1/(r**3)
-        #hessian[idx3][jdx3+1] = r0*k*x0*y1/(r**3)
-        #hessian[idx3][jdx3+2] = r0*k*x0*z1/(r**3)
 
         #d^2 /dx^2 U(r(x,y)) = r" U' + r'^2 U"
         #d^2/ dx dy U(r(x,y)) = d^2/dxdy r dU/dr + dr/dx dr/dy d^2 U/dr^2
 
         dudr = 2*k*(r-r0)
         du2dr2 = 2*k
-        drdx = (x1-x0)/r
-        drdy = (y1-y0)/r
-        drdz = (z1-z0)/r
 
-        dr2dxz = -((x1-x0)*(z1-z0))/r**3
-        dr2dyz = -((y1-y0)*(z1-z0))/r**3
-        dr2dxy = -((x1-x0)*(y1-y0))/r**3
+        rr = 1./r
+        r3 = 1./(r*r*r)
+        for k in range(3):
+            ii = idx*3
+            jj = jdx*3
+            diagelm = dudr*rr
+            hessian[ii+k][ii+k] += diagelm 
+            hessian[ii+k][jj+k] -= diagelm 
+            hessian[jj+k][jj+k] += diagelm 
+            for l in range(3):
+                elmij = -(rv[k]*rv[l])*r3*dudr + du2dr2*rv[k]*rv[l]/r2
+                hessian[ii+k][ii+l] += elmij 
+                hessian[ii+k][jj+l] -= elmij 
+                hessian[jj+k][jj+l] += elmij 
 
-        dr2dx2 = (1/r)-((x1-x0)**2)/r**3
-        dr2dy2 = (1/r)-((y1-y0)**2)/r**3
-        dr2dz2 = (1/r)-((z1-z0)**2)/r**3
-# 0  1  2  3  4  5
-# 6  7  8  9  10 11
-# 12 13 14 15 16 17
-# 18 19 20 21 22 23
-# 24 25 26 27 28 29
-# 30 31 32 33 34 35
-        hessian[0][0] = dr2dx2*dudr + drdx*drdx*du2dr2
-        hessian[0][1] = dr2dxy*dudr + drdx*drdy*du2dr2
-        hessian[0][2] = dr2dxz*dudr + drdx*drdz*du2dr2
-        hessian[0][3] = -dr2dx2*dudr - drdx*drdx*du2dr2 #same as [0][0]?
-        hessian[0][4] = -dr2dxy*dudr - drdy*drdx*du2dr2
-        hessian[0][5] = -dr2dxz*dudr - drdz*drdx*du2dr2
+#        x0 = ipos[0]
+#        y0 = ipos[1]
+#        z0 = ipos[2]
+#        x1 = jpos[0]
+#        y1 = jpos[1]
+#        z1 = jpos[2]
+         #r = math.sqrt((x1-x0)**2+(y1-y0)**2+(z1-z0)**2)
 
-        hessian[1][1] = dr2dy2*dudr + drdy*drdy*du2dr2
-        hessian[1][2] = dr2dyz*dudr + drdy*drdz*du2dr2
-        hessian[1][3] = -dr2dxy*dudr - drdx*drdy*du2dr2
-        hessian[1][4] = -dr2dy2*dudr - drdy*drdy*du2dr2
-        hessian[1][5] = -dr2dyz*dudr - drdz*drdy*du2dr2
+#        drdx = rv[0]/r
+#        drdy = rv[1]/r
+#        drdz = rv[2]/r
+#        dr2dxz = -(rv[0]*rv[2])/r**3
+#        dr2dyz = -(rv[1]*rv[2])/r**3
+#        dr2dxy = -(rv[0]*rv[1])/r**3
+#        dr2dx2 = (1/r)-(rv[0]*rv[0])/r**3
+#        dr2dy2 = (1/r)-(rv[1]*rv[1])/r**3
+#        dr2dz2 = (1/r)-(rv[2]*rv[2])/r**3
 
-        hessian[2][2] = dr2dz2*dudr + drdz*drdz*du2dr2
-        hessian[2][3] = -dr2dxz*dudr - drdx*drdz*du2dr2
-        hessian[2][4] = -dr2dyz*dudr - drdy*drdz*du2dr2
-        hessian[2][5] = -dr2dz2*dudr - drdz*drdz*du2dr2
+#        hessian[0][0] = dr2dx2*dudr + drdx*drdx*du2dr2
+#        hessian[0][1] = dr2dxy*dudr + drdx*drdy*du2dr2
+#        hessian[0][2] = dr2dxz*dudr + drdx*drdz*du2dr2
+#        hessian[0][3] = -dr2dx2*dudr - drdx*drdx*du2dr2 
+#        hessian[0][4] = -dr2dxy*dudr - drdy*drdx*du2dr2
+#        hessian[0][5] = -dr2dxz*dudr - drdz*drdx*du2dr2
 
-        hessian[3][3] = dr2dx2*dudr + drdx*drdx*du2dr2
-        hessian[3][4] = dr2dxy*dudr + drdy*drdx*du2dr2
-        hessian[3][5] = dr2dxz*dudr + drdz*drdx*du2dr2
+#        hessian[1][1] = dr2dy2*dudr + drdy*drdy*du2dr2
+#        hessian[1][2] = dr2dyz*dudr + drdy*drdz*du2dr2
+#        hessian[1][3] = -dr2dxy*dudr - drdx*drdy*du2dr2
+#        hessian[1][4] = -dr2dy2*dudr - drdy*drdy*du2dr2
+#        hessian[1][5] = -dr2dyz*dudr - drdz*drdy*du2dr2
 
-        hessian[4][4] = dr2dy2*dudr + drdy*drdy*du2dr2
-        hessian[4][5] = dr2dyz*dudr + drdy*drdz*du2dr2
+#        hessian[2][2] = dr2dz2*dudr + drdz*drdz*du2dr2
+#        hessian[2][3] = -dr2dxz*dudr - drdx*drdz*du2dr2
+#        hessian[2][4] = -dr2dyz*dudr - drdy*drdz*du2dr2
+#        hessian[2][5] = -dr2dz2*dudr - drdz*drdz*du2dr2
 
-        hessian[5][5] = dr2dz2*dudr + drdz*drdz*du2dr2
+#        hessian[3][3] = dr2dx2*dudr + drdx*drdx*du2dr2
+#        hessian[3][4] = dr2dxy*dudr + drdy*drdx*du2dr2
+#        hessian[3][5] = dr2dxz*dudr + drdz*drdx*du2dr2
+
+#        hessian[4][4] = dr2dy2*dudr + drdy*drdy*du2dr2
+#        hessian[4][5] = dr2dyz*dudr + drdy*drdz*du2dr2
+
+#        hessian[5][5] = dr2dz2*dudr + drdz*drdz*du2dr2
 
 #------
     # mass weight
+    print(hessian)
     ma = masses.reshape(pos.size) # make it easy to mass weight
     for i in range(pos.size):
         hessian[i][i] /= ma[i] # diagonal elements
@@ -131,7 +136,6 @@ def inm(nbonds,bonds,bondcoeff,pos,masses,hessian):
             mw = math.sqrt(ma[i]*ma[j])
             hessian[i][j] /= mw # off diagonal
             hessian[j][i] = hessian[i][j] # off diagonal
-
 
 #----------------Morse potential---------------------------
 def bond_morse(nbonds,bonds,bondcoeff,pos,acc):
@@ -235,9 +239,9 @@ def bond_hess_num(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses):
             post[j] = tposj
 
     print(hess_num)
-    w,v = numpy.linalg.eig(hess_num)
-    print(w)
-    print(v)
+#    w,v = numpy.linalg.eig(hess_num)
+#    print(w)
+#    print(v)
     return pbond
 
 #-------------------------------------------------
@@ -260,8 +264,10 @@ def bond(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses):
     inm(nbonds,bonds,bondcoeff,pos,masses,hessian)
     print(hessian)
     w,v = numpy.linalg.eig(hessian)
-    print(w)
-    print(v)
+    for i in range(pos.size):
+        print(i,w[i],v[:,i])
+#    print(w)
+#    print(v)
     exit(1)
 #endcheck
     return pbond
