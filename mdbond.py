@@ -126,9 +126,9 @@ def inm(nbonds,bonds,bondcoeff,pos,masses,hessian):
 
 #        hessian[5][5] = dr2dz2*dudr + drdz*drdz*du2dr2
 
+#    print(hessian)
 #------
     # mass weight
-    print(hessian)
     ma = masses.reshape(pos.size) # make it easy to mass weight
     for i in range(pos.size):
         hessian[i][i] /= ma[i] # diagonal elements
