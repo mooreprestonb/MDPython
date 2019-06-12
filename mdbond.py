@@ -48,8 +48,7 @@ def inm(nbonds,bonds,bondcoeff,pos,masses,hessian):
         jdx = bonds[i][2]
         posi = pos[idx]
         posj = pos[jdx]
-        k = bondcoeff[itype][0] # use type to bond params
-        r0 = bondcoeff[itype][1]
+
 
         rv = posj-posi
         r2 = numpy.dot(rv,rv)
@@ -63,23 +62,33 @@ def inm(nbonds,bonds,bondcoeff,pos,masses,hessian):
         #d^2 /dx^2 U(r(x,y)) = r" U' + r'^2 U"
         #d^2/ dx dy U(r(x,y)) = d^2/dxdy r dU/dr + dr/dx dr/dy d^2 U/dr^2
 
-        dudr = 2*k*(r-r0)
-        du2dr2 = 2*k
+        if(itype==0):  # Harmonic
+            k = bondcoeff[itype][0] # use type to bond params
+            r0 = bondcoeff[itype][1]
+            dudr = 2*k*(r-r0)
+            du2dr2 = 2*k
+
+        if(itype==1): #Morse
+            D = bondcoeff[bonds[i][0]][0]
+            alpha = bondcoeff[bonds[i][0]][1]
+            r0 = bondcoeff[bonds[i][0]][2]
+            dudr = 2*D*alpha
+            du2dr2 = 2*D
 
         rr = 1./r
         r3 = 1./(r*r*r)
-        for k in range(3):
+        for k in range(3): # x y z of particle with index idx
             ii = idx*3
             jj = jdx*3
             diagelm = dudr*rr
-            hessian[ii+k][ii+k] += diagelm 
-            hessian[ii+k][jj+k] -= diagelm 
-            hessian[jj+k][jj+k] += diagelm 
-            for l in range(3):
+            hessian[ii+k][ii+k] += diagelm
+            hessian[ii+k][jj+k] -= diagelm
+            hessian[jj+k][jj+k] += diagelm
+            for l in range(3): # x y z of particle with index jdx
                 elmij = -(rv[k]*rv[l])*r3*dudr + du2dr2*rv[k]*rv[l]/r2
-                hessian[ii+k][ii+l] += elmij 
-                hessian[ii+k][jj+l] -= elmij 
-                hessian[jj+k][jj+l] += elmij 
+                hessian[ii+k][ii+l] += elmij
+                hessian[ii+k][jj+l] -= elmij
+                hessian[jj+k][jj+l] += elmij
 
 #        x0 = ipos[0]
 #        y0 = ipos[1]
@@ -102,7 +111,7 @@ def inm(nbonds,bonds,bondcoeff,pos,masses,hessian):
 #        hessian[0][0] = dr2dx2*dudr + drdx*drdx*du2dr2
 #        hessian[0][1] = dr2dxy*dudr + drdx*drdy*du2dr2
 #        hessian[0][2] = dr2dxz*dudr + drdx*drdz*du2dr2
-#        hessian[0][3] = -dr2dx2*dudr - drdx*drdx*du2dr2 
+#        hessian[0][3] = -dr2dx2*dudr - drdx*drdx*du2dr2
 #        hessian[0][4] = -dr2dxy*dudr - drdy*drdx*du2dr2
 #        hessian[0][5] = -dr2dxz*dudr - drdz*drdx*du2dr2
 
@@ -239,8 +248,8 @@ def bond_hess_num(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses):
             post[j] = tposj
 
     print(hess_num)
-#    w,v = numpy.linalg.eig(hess_num)
-#    print(w)
+    w,v = numpy.linalg.eig(hess_num)
+    print(w)
 #    print(v)
     return pbond
 
@@ -264,9 +273,9 @@ def bond(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses):
     inm(nbonds,bonds,bondcoeff,pos,masses,hessian)
     print(hessian)
     w,v = numpy.linalg.eig(hessian)
+    print(w)
     for i in range(pos.size):
         print(i,w[i],v[:,i])
-#    print(w)
 #    print(v)
     exit(1)
 #endcheck
