@@ -273,10 +273,24 @@ def bond(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses):
     inm(nbonds,bonds,bondcoeff,pos,masses,hessian)
     print(hessian)
     w,v = numpy.linalg.eig(hessian)
-    print(w)
+    #    print(w)
+    #    print(v)
     for i in range(pos.size):
         print(i,w[i],v[:,i])
-#    print(v)
+
+    f = open("check.vmd","w")
+    f.write("mol new\n")
+    f.write("draw color blue\n")
+    f.write("draw sphere {%f %f %f} radius .2\n" % (pos[0][0], pos[0][1], pos[0][2]))
+    f.write("draw color red\n")
+    f.write("draw sphere {%f %f %f} radius .2\n" % (pos[1][0], pos[1][1], pos[1][2]))
+    for i in range(6):
+        f.write("draw color %d\n" %(i+1))
+        f.write("draw line {%f %f %f} {%f %f %f} width 3\n" % (pos[0][0], pos[0][1], pos[0][2], pos[0][0]+v[0][i],pos[0][1]+v[1][i], pos[0][2]+v[2][i]))
+        f.write("draw line {%f %f %f} {%f %f %f} width 3\n" % (pos[1][0], pos[1][1], pos[1][2], pos[1][0]+v[3][i],pos[1][1]+v[4][i], pos[1][2]+v[5][i]))
+    f.close()
+
+
     exit(1)
 #endcheck
     return pbond
