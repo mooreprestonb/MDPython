@@ -5,7 +5,7 @@ import sys
 import numpy
 import time
 
-import mdglobal  # file with global variables
+#import mdglobal  # file with global variables
 import mdinput   # file with input routines
 import mdoutput  # file with output routines
 import mdlj      # file with non-bonded routines
@@ -23,10 +23,10 @@ global masses       # broadcast of mass type to atoms
 global pos          # positions of each atom
 global vel          # velocities of each atom
 global acc          # acceleration of each atom
-global aatype       # array of atom types    
+global aatype       # array of atom types
 global bonds        # bonds (array with type, ibond, jbond)
 global hessian      # hessian matrix
-global abtype       # array of bond types    
+global abtype       # array of bond types
 global logfile      # file to output thermodata
 
 box = numpy.zeros(3)
@@ -34,9 +34,9 @@ pot = numpy.zeros(5)
 
 #-------------------------------------------------
 def readinit(datafile): # read lammps init data file
-    
+
     global natoms, atypes, nbonds, tbonds, box
-    
+
     print ("Reading",datafile)
     fi = open(datafile,"r")
     lines = fi.readlines() # read in lines all at once
@@ -52,7 +52,7 @@ def readinit(datafile): # read lammps init data file
 
     # allocate arrays from data
     global mass, aatype, pos, vel, acc, masses, bonds, hessian
-    
+
     mass = numpy.zeros(atypes)
     aatype = numpy.zeros(natoms,dtype=int)
     pos = numpy.zeros((natoms,3))
@@ -71,23 +71,23 @@ def readinit(datafile): # read lammps init data file
 def readin(): # read lammps like infile
 
     global nsteps, dt, initfile, ithermo, idump, dumpfile, bond_style, bondcoeff
-    global logfile 
+    global logfile
 
     logfile = None
     print ("Reading",sys.argv[1])
     fi = open(sys.argv[1],"r")
     lines = fi.readlines() # read in lines all at once
     fi.close()
-    
+
     # print lines
     data =[None]*8
     mdinput.readsysvals(lines,data) # read lammps in file
     nsteps, dt, initfile, ithermo, idump, dumpfile, bond_styles, logfile = data
     print("nsteps, dt, initfile, ithermo, idump, dumpfile, bond_styles, logfile",data)
-    
+
     readinit(initfile)  # read initfile to get atoms bonds and types
 
-    global bondcoeff 
+    global bondcoeff
     bondcoeff = numpy.zeros((tbonds,3))  # allocate bondcoeff
     bond_style = mdinput.getbondcoeff(lines,bond_styles,tbonds,bondcoeff) # readin bondcoeff
 
@@ -105,11 +105,11 @@ def force(): # get forces from potentials
     pot[2] = 0
     # torsion
     pot[3] = 0
-    
-    # change forces into accelerations
-    acc /= masses  
 
-#-----------------------------------------------------------    
+    # change forces into accelerations
+    acc /= masses
+
+#-----------------------------------------------------------
 def step(): # velocity verlet (using 1/2 steps)
     global pos, vel, acc, dt
     # print istep,pos,vel,acc
@@ -118,7 +118,7 @@ def step(): # velocity verlet (using 1/2 steps)
     force()
     vel += acc*dt/2.0
 
-#-----------------------------------------------------------    
+#-----------------------------------------------------------
 
 # read command line for input file
 if (len(sys.argv) != 2):  # error check that we have an input file
@@ -156,7 +156,7 @@ for istep in range(1,nsteps+1):
     if(itime < time.time()-tnow):
         print('step = {}/{} = {:.4f}%, teng = {:g}, time = {:g}'.format(istep,nsteps,istep/nsteps,teng,time.time()-ttime))
         tnow = time.time()
-        
+
 print('Done dynamics! total time = {:g} seconds'.format(time.time()-ttime))
 teng = mdoutput.write_thermo(logfile,istep+1,natoms,masses,pos,vel,pot)
 mdoutput.write_init("test.init",istep-1,natoms,atypes,nbonds,tbonds,box,mass,pos,vel,bonds,aatype)

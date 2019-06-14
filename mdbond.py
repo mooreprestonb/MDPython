@@ -33,34 +33,144 @@ def bond_harm(nbonds,bonds,bondcoeff,pos,acc):
     return(pbond)
 
 #--------------------INM for harmonic-----------------------------
-def inm(istep,natoms,masses,pos,pot,hessian):
+def inm(bond_style,nbonds,bonds,bondcoeff,pos,masses,hessian):
 
-#0 1 2
-#3 4 5
-#6 7 8
+    # create hessian
+    # Harmonic    k*(r-r0)^2
+    # d/dr    2*k*(r-r0)
+    # d^2/dr^2   2*k
 
-    hessian[0][0] = k-((r0*k*(y0**2)+(z0**2))/(r**3))
-    hessian[0][1] = r0*k*x0*y0/(r**3)
-    hessian[0][2] = r0*k*x0*z0/(r**3)
-    hessian[0][3] = r0*k*x0*y0/(r**3)
-    hessian[0][4] = k-((r0*k*(x0**2)+(z0**2))/(r**3))
-    hessian[0][5] = r0*k*z0*y0/(r**3)
-    hessian[0][6] = r0*k*x0*z0/(r**3)
-    hessian[0][7] = r0*k*z0*y0/(r**3)
-    hessian[0][8] = k-((r0*k*(y0**2)+(x0**2))/(r**3))
+    pbond = 0
 
-    hessian[1][0] = k-((r0*k*(y1**2)+(z1**2))/(r**3)) 
-    hessian[1][1] = r0*k*x1*y1/(r**3)
-    hessian[1][2] = r0*k*x1*z1/(r**3)
-    hessian[1][3] = r0*k*x1*y1/(r**3)
-    hessian[1][4] = k-((r0*k*(x1**2)+(z1**2))/(r**3))
-    hessian[1][5] = r0*k*z1*y1/(r**3)
-    hessian[1][6] = r0*k*x1*z1/(r**3)
-    hessian[1][7] = r0*k*z1*y1/(r**3)
-    hessian[1][8] = k-((r0*k*(y1**2)+(x1**2))/(r**3))
+    for i in range(nbonds):  # loop over bonds,
+        itype = bonds[i][0]  # bond type (in this case harmonic
+        idx = bonds[i][1] # which atoms are involved in this bonds
+        jdx = bonds[i][2]
+        posi = pos[idx]
+        posj = pos[jdx]
 
 
-#---------
+        rv = posj-posi
+        r2 = numpy.dot(rv,rv)
+        r = math.sqrt(r2)
+
+#        print (itype,idx,jdx,posi,posj,k,r0,r)
+
+        # d^2/ dx0 dxi
+        idx3 = idx*3
+        jdx3 = jdx*3
+
+        #d^2 /dx^2 U(r(x,y)) = r" U' + r'^2 U"
+        #d^2/ dx dy U(r(x,y)) = d^2/dxdy r dU/dr + dr/dx dr/dy d^2 U/dr^2
+        if(bond_style==0):  # Harmonic
+            k0 = bondcoeff[itype][0] # use type to bond params
+            r0 = bondcoeff[itype][1]
+            dudr = 2*k0*(r-r0)
+            du2dr2 = 2*k0
+            print("Harmonic stuff")
+            print(k0,r0)
+
+        if(bond_style==1): #Morse
+            D = bondcoeff[bonds[i][0]][0] #idx D alpha r0
+            alpha = bondcoeff[bonds[i][0]][1]
+            r0 = bondcoeff[bonds[i][0]][2]
+            dr = r-r0
+            expar = math.exp(-alpha*dr)
+            dudr = 2.0*D * alpha * expar *(1.0-expar)
+            du2dr2 = (2*D*alpha*alpha)*((-expar) + (2*expar*expar))
+            print("Morse Stuff")
+            print(D,alpha,r0)
+
+        rr = 1./r
+        r3 = 1./(r*r*r)
+        for k in range(3): # x y z of particle with index idx
+            ii = idx*3
+            jj = jdx*3
+            diagelm = dudr*rr
+            hessian[ii+k][ii+k] += diagelm
+            hessian[ii+k][jj+k] -= diagelm
+            hessian[jj+k][jj+k] += diagelm
+            for l in range(3): # x y z of particle with index jdx
+                elmij = -(rv[k]*rv[l])*r3*dudr + du2dr2*rv[k]*rv[l]/r2
+                hessian[ii+k][ii+l] += elmij
+                hessian[ii+k][jj+l] -= elmij
+                hessian[jj+k][jj+l] += elmij
+
+#        x0 = ipos[0]
+#        y0 = ipos[1]
+#        z0 = ipos[2]
+#        x1 = jpos[0]
+#        y1 = jpos[1]
+#        z1 = jpos[2]
+         #r = math.sqrt((x1-x0)**2+(y1-y0)**2+(z1-z0)**2)
+
+#        drdx = rv[0]/r
+#        drdy = rv[1]/r
+#        drdz = rv[2]/r
+#        dr2dxz = -(rv[0]*rv[2])/r**3
+#        dr2dyz = -(rv[1]*rv[2])/r**3
+#        dr2dxy = -(rv[0]*rv[1])/r**3
+#        dr2dx2 = (1/r)-(rv[0]*rv[0])/r**3
+#        dr2dy2 = (1/r)-(rv[1]*rv[1])/r**3
+#        dr2dz2 = (1/r)-(rv[2]*rv[2])/r**3
+
+#        hessian[0][0] = dr2dx2*dudr + drdx*drdx*du2dr2
+#        hessian[0][1] = dr2dxy*dudr + drdx*drdy*du2dr2
+#        hessian[0][2] = dr2dxz*dudr + drdx*drdz*du2dr2
+#        hessian[0][3] = -dr2dx2*dudr - drdx*drdx*du2dr2
+#        hessian[0][4] = -dr2dxy*dudr - drdy*drdx*du2dr2
+#        hessian[0][5] = -dr2dxz*dudr - drdz*drdx*du2dr2
+
+#        hessian[1][1] = dr2dy2*dudr + drdy*drdy*du2dr2
+#        hessian[1][2] = dr2dyz*dudr + drdy*drdz*du2dr2
+#        hessian[1][3] = -dr2dxy*dudr - drdx*drdy*du2dr2
+#        hessian[1][4] = -dr2dy2*dudr - drdy*drdy*du2dr2
+#        hessian[1][5] = -dr2dyz*dudr - drdz*drdy*du2dr2
+
+#        hessian[2][2] = dr2dz2*dudr + drdz*drdz*du2dr2
+#        hessian[2][3] = -dr2dxz*dudr - drdx*drdz*du2dr2
+#        hessian[2][4] = -dr2dyz*dudr - drdy*drdz*du2dr2
+#        hessian[2][5] = -dr2dz2*dudr - drdz*drdz*du2dr2
+
+#        hessian[3][3] = dr2dx2*dudr + drdx*drdx*du2dr2
+#        hessian[3][4] = dr2dxy*dudr + drdy*drdx*du2dr2
+#        hessian[3][5] = dr2dxz*dudr + drdz*drdx*du2dr2
+
+#        hessian[4][4] = dr2dy2*dudr + drdy*drdy*du2dr2
+#        hessian[4][5] = dr2dyz*dudr + drdy*drdz*du2dr2
+
+#        hessian[5][5] = dr2dz2*dudr + drdz*drdz*du2dr2
+
+#    print(hessian)
+#------
+    # mass weight
+    ma = masses.reshape(pos.size) # make it easy to mass weight
+    for i in range(pos.size):
+        hessian[i][i] /= ma[i] # diagonal elements
+        for j in range(i+1,pos.size):
+            mw = math.sqrt(ma[i]*ma[j])
+            hessian[i][j] /= mw # off diagonal
+            hessian[j][i] = hessian[i][j] # off diagonal
+    mu = ma[0]*ma[3]/(ma[0]+ma[3])
+
+    print("omega-squared")
+    if bond_style==0: #Harmonic
+        print(2*k0/mu)
+        #freq_lst = [k/m for m in mu]
+        #unique_freqs = []
+        #for freq in freq_lst:
+        #    if freq not in unique_freqs:
+        #        unique_freqs.append(freq)
+        #print(unique_freqs)
+    if bond_style==1: #Morse:
+        expar = math.exp(-alpha*dr)        
+        print((2*alpha*alpha*D*(-1*expar+2*expar*expar))/mu)
+        #freq_lst = [alpha/m for m in mw]
+        #unique_freqs = []
+        #for freq in freq_lst:
+        #    if freq not in unique_freqs:
+        #        unique_freqs.append(freq)
+        #print(unique_freqs)
 
 #----------------Morse potential---------------------------
 def bond_morse(nbonds,bonds,bondcoeff,pos,acc):
@@ -85,7 +195,7 @@ def bond_morse(nbonds,bonds,bondcoeff,pos,acc):
         pot = D*(1-expar)**2
         pbond += pot             # total bond
 
-        dudr = 2.*D * alpha * expar *(1-expar)
+        dudr = 2.0*D * alpha * expar *(1.0-expar)
         dpos = (dudr/r)*dpos
 
         acc[bonds[i][1]] += dpos  # add forces back
@@ -129,6 +239,7 @@ def bond_hess_num(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses):
 
     print("Numerical 2nd derivatives")
     # uses d^2f(x)/ dx dy = (f(x+h,y+h)+f(x-h,y-h)-f(x+h,y-h)-f(x-h,y+h))/(4hh)
+    # uses d^2f(x)/ dx dx = (f(x+h,y)+f(x-h,y)-2f(x,y))/(4hh)
     post = pos.reshape(pos.size)
     # print(post.reshape((-1,3)))
     for i in range(post.size):
@@ -165,7 +276,7 @@ def bond_hess_num(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses):
     print(hess_num)
     w,v = numpy.linalg.eig(hess_num)
     print(w)
-    print(v)
+#    print(v)
     return pbond
 
 #-------------------------------------------------
@@ -182,6 +293,34 @@ def bond(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses):
     print(acc)
     bond_num(bond_style,nbonds,bonds,bondcoeff,pos,acc)
     bond_hess_num(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses)
+
+    print(pos.size)
+    hessian = numpy.zeros((pos.size,pos.size))
+    inm(bond_style,nbonds,bonds,bondcoeff,pos,masses,hessian)
+    print("")
+    print("Analytical Hessian")
+    print(hessian)
+    w,v = numpy.linalg.eig(hessian)
+    #    print(w)
+    #    print(v)
+    for i in range(pos.size):
+        print("")
+        print("Eigenvalue", i)
+        print(i,w[i],v[:,i])
+
+    f = open("check.vmd","w")
+    f.write("mol new\n")
+    f.write("draw color blue\n")
+    f.write("draw sphere {%f %f %f} radius .2\n" % (pos[0][0], pos[0][1], pos[0][2]))
+    f.write("draw color red\n")
+    f.write("draw sphere {%f %f %f} radius .2\n" % (pos[1][0], pos[1][1], pos[1][2]))
+    for i in range(6):
+        f.write("draw color %d\n" %(i+1))
+        f.write("draw line {%f %f %f} {%f %f %f} width 3\n" % (pos[0][0], pos[0][1], pos[0][2], pos[0][0]+v[0][i],pos[0][1]+v[1][i], pos[0][2]+v[2][i]))
+        f.write("draw line {%f %f %f} {%f %f %f} width 3\n" % (pos[1][0], pos[1][1], pos[1][2], pos[1][0]+v[3][i],pos[1][1]+v[4][i], pos[1][2]+v[5][i]))
+    f.close()
+
+
     exit(1)
 #endcheck
     return pbond
