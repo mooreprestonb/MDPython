@@ -30,7 +30,7 @@ global abtype       # array of bond types
 global logfile      # file to output thermodata
 
 box = numpy.zeros(3)
-pot = numpy.zeros(5)
+pot = numpy.zeros(6)
 
 #-------------------------------------------------
 def readinit(datafile): # read lammps init data file
@@ -134,7 +134,7 @@ force()
 teng = mdoutput.write_thermo(logfile,0,natoms,masses,pos,vel,pot)
 
 itime = 10 # report total energy every 1 seconds
-inmo = 10 # write hessian ever 10 steps
+inmo = 100 # write hessian ever 10 steps
 tnow = time.time()
 ttime = tnow
 
@@ -144,7 +144,9 @@ for istep in range(1,nsteps+1):
     step() # take a step
 
     if(istep%inmo==0):
-#        mdbond.inm(istep,natoms,masses,pos,pot,hessian)
+        hessian = numpy.zeros((pos.size,pos.size))
+        mdbond.inm(bond_style,nbonds,bonds,bondcoeff,pos,masses,hessian)
+        print(hessian)
         mdoutput.write_inm(istep,hessian)
 
     if(istep%ithermo==0):
