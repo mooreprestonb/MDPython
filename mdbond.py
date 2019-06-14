@@ -33,7 +33,7 @@ def bond_harm(nbonds,bonds,bondcoeff,pos,acc):
     return(pbond)
 
 #--------------------INM for harmonic-----------------------------
-def inm(nbonds,bonds,bondcoeff,pos,masses,hessian):
+def inm(bond_style,nbonds,bonds,bondcoeff,pos,masses,hessian):
 
     # create hessian
     # Harmonic    k*(r-r0)^2
@@ -53,6 +53,7 @@ def inm(nbonds,bonds,bondcoeff,pos,masses,hessian):
         rv = posj-posi
         r2 = numpy.dot(rv,rv)
         r = math.sqrt(r2)
+
 #        print (itype,idx,jdx,posi,posj,k,r0,r)
 
         # d^2/ dx0 dxi
@@ -61,19 +62,24 @@ def inm(nbonds,bonds,bondcoeff,pos,masses,hessian):
 
         #d^2 /dx^2 U(r(x,y)) = r" U' + r'^2 U"
         #d^2/ dx dy U(r(x,y)) = d^2/dxdy r dU/dr + dr/dx dr/dy d^2 U/dr^2
-
-        if(itype==0):  # Harmonic
-            k = bondcoeff[itype][0] # use type to bond params
+        if(bond_style==0):  # Harmonic
+            k0 = bondcoeff[itype][0] # use type to bond params
             r0 = bondcoeff[itype][1]
-            dudr = 2*k*(r-r0)
-            du2dr2 = 2*k
+            dudr = 2*k0*(r-r0)
+            du2dr2 = 2*k0
+            print("Harmonic stuff")
+            print(k0,r0)
 
-        if(itype==1): #Morse
-            D = bondcoeff[bonds[i][0]][0]
+        if(bond_style==1): #Morse
+            D = bondcoeff[bonds[i][0]][0] #idx D alpha r0
             alpha = bondcoeff[bonds[i][0]][1]
             r0 = bondcoeff[bonds[i][0]][2]
-            dudr = 2*D*alpha
-            du2dr2 = 2*D
+            dr = r-r0
+            expar = math.exp(-alpha*dr)
+            dudr = 2.0*D * alpha * expar *(1.0-expar)
+            du2dr2 = (2*D*alpha*alpha)*((-expar) + (2*expar*expar))
+            print("Morse Stuff")
+            print(D,alpha,r0)
 
         rr = 1./r
         r3 = 1./(r*r*r)
@@ -145,6 +151,26 @@ def inm(nbonds,bonds,bondcoeff,pos,masses,hessian):
             mw = math.sqrt(ma[i]*ma[j])
             hessian[i][j] /= mw # off diagonal
             hessian[j][i] = hessian[i][j] # off diagonal
+    mu = ma[0]*ma[3]/(ma[0]+ma[3])
+
+    print("omega-squared")
+    if bond_style==0: #Harmonic
+        print(2*k0/mu)
+        #freq_lst = [k/m for m in mu]
+        #unique_freqs = []
+        #for freq in freq_lst:
+        #    if freq not in unique_freqs:
+        #        unique_freqs.append(freq)
+        #print(unique_freqs)
+    if bond_style==1: #Morse:
+        expar = math.exp(-alpha*dr)        
+        print((2*alpha*alpha*D*(-1*expar+2*expar*expar))/mu)
+        #freq_lst = [alpha/m for m in mw]
+        #unique_freqs = []
+        #for freq in freq_lst:
+        #    if freq not in unique_freqs:
+        #        unique_freqs.append(freq)
+        #print(unique_freqs)
 
 #----------------Morse potential---------------------------
 def bond_morse(nbonds,bonds,bondcoeff,pos,acc):
@@ -169,7 +195,7 @@ def bond_morse(nbonds,bonds,bondcoeff,pos,acc):
         pot = D*(1-expar)**2
         pbond += pot             # total bond
 
-        dudr = 2.*D * alpha * expar *(1-expar)
+        dudr = 2.0*D * alpha * expar *(1.0-expar)
         dpos = (dudr/r)*dpos
 
         acc[bonds[i][1]] += dpos  # add forces back
@@ -270,12 +296,16 @@ def bond(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses):
 
     print(pos.size)
     hessian = numpy.zeros((pos.size,pos.size))
-    inm(nbonds,bonds,bondcoeff,pos,masses,hessian)
+    inm(bond_style,nbonds,bonds,bondcoeff,pos,masses,hessian)
+    print("")
+    print("Analytical Hessian")
     print(hessian)
     w,v = numpy.linalg.eig(hessian)
     #    print(w)
     #    print(v)
     for i in range(pos.size):
+        print("")
+        print("Eigenvalue", i)
         print(i,w[i],v[:,i])
 
     f = open("check.vmd","w")
