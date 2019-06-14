@@ -25,7 +25,7 @@ dump traj all xyz 10 ho.xyz
 thermo_style custom elapsed temp etotal ke pe evdwl ebond
 
 thermo 10
-log output.log
+log morse.log
 
 fix vvnve all nve
 

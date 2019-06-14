@@ -13,3 +13,7 @@ log.lammps
 output.log
 hopy.log
 holammps.log
+check.vmd
+mdinput.pyc
+mdbond.pyc
+mdlj.pyc
