@@ -36,7 +36,7 @@ def bond_force(bond_style,nbonds,bonds,bondcoeff,pos,acc):
         else:
             print ("Error in bond_style? in routine bond_force\n")
             exit(1)
-            
+
         pbond += pot             # sum bond potential
 
         acc[bonds[i][1]] += dpos  # add forces to particles
@@ -48,7 +48,7 @@ def bond_force(bond_style,nbonds,bonds,bondcoeff,pos,acc):
 def bond_num(bond_style,nbonds,bonds,bondcoeff,pos,acc):
 
     pbond = 0
-    
+
 #    print("Analytical forces",pos.size)
 #    print(acc)
     print("Calculating Numerical Forces")
@@ -68,10 +68,10 @@ def bond_num(bond_style,nbonds,bonds,bondcoeff,pos,acc):
         post[i] = tpos - h
         pbondm1 = bond_force(bond_style,nbonds,bonds,bondcoeff,post.reshape(-1,3),acc_d)
         post[i] = tpos
-        
+
         acc_num[i] = -(pbond1-pbondm1)/(2.0*h)
         #print(i,pbond,pbond1,pbondm1)
-        
+
     numpy.copyto(acc,acc_num.reshape(-1,3))
     return pbond
 
@@ -166,7 +166,7 @@ def bond_hess_num(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses,hess_num):
         post[i] = tpos
 
         hess_num[i][i] = (pbond1+pbondm1-2.0*pbond)/(h*h*ma[i]) #diagonal with mass weight
-        
+
         #print(i,pbond1,pbondm1,pbond,h,ma[i])
         #print(i,pbond,hess_num[i][i],post)
         for j in range(i+1,post.size):  # off diagonals
@@ -216,11 +216,11 @@ def check_forces(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses):
 
     acc_num = numpy.copy(acc)
     bond_num(bond_style,nbonds,bonds,bondcoeff,pos,acc_num)
-    
+
     tol = 1e-6
     diff = acc_num-acc
     mv = max(diff.max(),abs(diff.min()))
-    
+
     if(mv < tol):
         print("Forces Match, pbond =",pbond,mv)
     else:
@@ -238,15 +238,15 @@ def check_inm(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses):
     hessian = numpy.zeros((pos.size,pos.size))
     bond_hess(bond_style,nbonds,bonds,bondcoeff,pos,masses,hessian)
     #print(hessian)
-            
+
     #print(pos.size)
     hess_num = numpy.zeros((pos.size,pos.size))
     bond_hess_num(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses,hess_num)
     #print(hess_num)
-    
+
     hdiff = hess_num-hessian
     mv = max(hdiff.max(),abs(hdiff.min()))/hessian.max()
-    
+
     rdiff = numpy.sum(numpy.sum(hdiff*hdiff,axis=1))
     tol = 1e-5
     print(rdiff,mv)
@@ -261,7 +261,7 @@ def check_inm(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses):
         print("Diff = ",mv,rdiff,hdiff)
         print("Bummer!")
         exit(1)
-    
+
     print("omega-squared")
     for i in range(nbonds):  # loop over bonds,
         itype = bonds[i][0]  # bond type
@@ -286,7 +286,7 @@ def check_inm(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses):
         else: #??
             print("ERROR in bond_style")
             exit(1)
-        
+
     w,v = numpy.linalg.eig(hessian)
     print("eigenvalus:",w)
     #print(v)
@@ -294,7 +294,7 @@ def check_inm(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses):
     w,v = numpy.linalg.eig(hess_num)
     print("eigenvalues num:", w)
     #print(v)
-    
+
     print("Eigenvectors")
     for i in range(pos.size):
         print("")

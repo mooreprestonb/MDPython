@@ -25,9 +25,10 @@ thermo_style custom elapsed temp etotal ke pe evdwl ebond
 thermo 10 
 
 log ho.log
+inm hoinm.dat 100
 
 #fix lm all momentum 100 linear 1 1 1
 fix vvnve all nve
-run 10000
+run 100000
 
 write_data test.init
