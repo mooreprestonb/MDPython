@@ -216,8 +216,7 @@ def readsysvals(lines,data): # read lammps init data file
     ln = findline1(lines,"thermo")
     data[3] = int(lines[ln].split()[1])
 
-    #global idump
-    # global dumpfile
+    #global idump, dumpfile
     ln = findline1(lines,"dump")
     data[4] = int(lines[ln].split()[4])
     data[5] = lines[ln].split()[5]
@@ -231,3 +230,11 @@ def readsysvals(lines,data): # read lammps init data file
     if(ln!=-1):
         data[7] = lines[ln].split()[1]
 
+    # global inmfile, inmo
+    ln = findline1(lines,"inm")
+    if(ln!=-1):
+        data[8] = lines[ln].split()[1]
+        data[9] = int(lines[ln].split()[2])
+    else:
+        data[8] = "evhist.dat"
+        data[9] = data[1]

@@ -4,7 +4,7 @@ import numpy
 
 def write_dump(dumpfile,istep,natoms,pos,aatype):
     global fowrite
-    
+
     try: fowrite  # has fowrite been assigned yet?
     except NameError:
         fowrite = open(dumpfile,"w")
@@ -27,11 +27,11 @@ def write_dump(dumpfile,istep,natoms,pos,aatype):
 def write_thermo(logfile,istep,natoms,masses,pos,vel,pot):
 
     global fothermo
-    
+
     ke = .5*numpy.sum(masses*vel*vel)
     tpot = numpy.sum(pot)
     temp = 2.0*ke/(3.0*natoms)
-    
+
     if(logfile==None):
         if(istep==0):
             print('#step, temp, etotal, ke, tpot, evdw, ebond')
@@ -44,9 +44,9 @@ def write_thermo(logfile,istep,natoms,masses,pos,vel,pot):
             fothermo = open(logfile,"w")
             fothermo.write('# step, temp, etotal, ke, tpot, evdw, ebond\n')
 
-        line = str(istep)+" "+str(temp)+" "+str((ke+tpot))+" "+str(ke)+" "+str(tpot)+" "+str(pot[0])+" "+str(pot[1])+"\n"        
+        line = str(istep)+" "+str(temp)+" "+str((ke+tpot))+" "+str(ke)+" "+str(tpot)+" "+str(pot[0])+" "+str(pot[1])+"\n"
         fothermo.write(line)
-        
+
     # fo.close()
     return ke+tpot
 
@@ -74,7 +74,7 @@ def write_init(initfile,istep,natoms,atypes,nbonds,tbonds,box,mass,pos,vel,bonds
     for i in range(atypes):
         line = str(i+1) + " " + str(mass[i]) + "\n"
         foinit.write(line)
-    
+
     foinit.write("\n")
     foinit.write("Atoms # full style: index type group charge x y z")
     foinit.write("\n")
@@ -95,10 +95,12 @@ def write_init(initfile,istep,natoms,atypes,nbonds,tbonds,box,mass,pos,vel,bonds
     for i in range(nbonds):
         line = str(i+1) + " " + str(bonds[i][0]+1) + " " + str(bonds[i][1]+1) + " " + str(bonds[i][2]+1) + "\n"
         foinit.write(line)
-        
+
     foinit.write("\n")
     foinit.close()
     return 0
 
 def write_inm(istep,hessian):
-    print(istep,hessian)
+    #print(istep,hessian)
+    print(istep)
+    # print("eigenvalus:",w)

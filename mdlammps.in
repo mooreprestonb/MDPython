@@ -27,6 +27,8 @@ thermo_style custom elapsed temp etotal ke pe evdwl ebond
 thermo 10
 log morse.log
 
+inm morse.eig.dat 100
+
 fix vvnve all nve
 
-run 10000
+run 100000

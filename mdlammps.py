@@ -71,19 +71,20 @@ def readinit(datafile): # read lammps init data file
 def readin(): # read lammps like infile
 
     global nsteps, dt, initfile, ithermo, idump, dumpfile, bond_style, bondcoeff
-    global logfile
+    global logfile, inmfile, inmo
 
     logfile = None
+    inmfile = None
     print ("Reading",sys.argv[1])
     fi = open(sys.argv[1],"r")
     lines = fi.readlines() # read in lines all at once
     fi.close()
 
     # print lines
-    data =[None]*8
+    data =[None]*10
     mdinput.readsysvals(lines,data) # read lammps in file
-    nsteps, dt, initfile, ithermo, idump, dumpfile, bond_styles, logfile = data
-    print("nsteps, dt, initfile, ithermo, idump, dumpfile, bond_styles, logfile",data)
+    nsteps, dt, initfile, ithermo, idump, dumpfile, bond_styles, logfile, inmfile, inmo = data
+    print("nsteps, dt, initfile, ithermo, idump, dumpfile, bond_styles, logfile, inmfile, inm",data)
 
     readinit(initfile)  # read initfile to get atoms bonds and types
 
@@ -134,32 +135,68 @@ force()
 teng = mdoutput.write_thermo(logfile,0,natoms,masses,pos,vel,pot)
 
 itime = 10 # report total energy every 1 seconds
-inmo = 100 # write hessian ever 10 steps
 tnow = time.time()
 ttime = tnow
+tol = 1e-8
+#inmo = 100 # write hessian ever 10 steps
 
 print("Running dynamics")
+
+eig_array = []
+
 for istep in range(1,nsteps+1):
 
     step() # take a step
 
-    if(istep%inmo==0):
+    if(istep%inmo==0): # get instantaneous normal modes
         hessian = numpy.zeros((pos.size,pos.size))
         mdbond.inm(bond_style,nbonds,bonds,bondcoeff,pos,masses,hessian)
-        print(hessian)
-        mdoutput.write_inm(istep,hessian)
 
-    if(istep%ithermo==0):
+        # print(hessian)
+        w,v = numpy.linalg.eig(hessian)
+        # remove lowest eigegvalues (translations of entire system)
+        idx = numpy.argmin(numpy.abs(w.real))
+        if(abs(w[idx]) > tol):
+            print("Warning! Removing eigenvalue > tol",w[idx])
+        w = numpy.delete(w,idx)
+        idx = numpy.argmin(numpy.abs(w.real))
+        if(abs(w[idx]) > tol):
+            print("Warning! Removing eigenvalue > tol",w[idx])
+        w = numpy.delete(w,idx)
+        idx = numpy.argmin(numpy.abs(w.real))
+        if(abs(w[idx]) > tol):
+            print("Warning! Removing eigenvalue > tol",w[idx])
+        w = numpy.delete(w,idx)
+        eig_array.append(w.real) # only get real part of array - imag do to round off error is small so we throw away. 
+        # mdoutput.write_inm(istep,hessian)
+
+    if(istep%ithermo==0): # write out thermodynamic data
         teng = mdoutput.write_thermo(logfile,istep,natoms,masses,pos,vel,pot)
 
     if(istep%idump==0): # dump to xyz file so we can see this in lammps
         mdoutput.write_dump(dumpfile,istep,natoms,pos,aatype)
 
-    if(itime < time.time()-tnow):
-        print('step = {}/{} = {:.4f}%, teng = {:g}, time = {:g}'.format(istep,nsteps,istep/nsteps,teng,time.time()-ttime))
+    if(itime < time.time()-tnow): # report where we are
+        print('step = {}/{} = {:.4f}%, teng = {:g}, time = {:g}'.format(istep,nsteps,istep/nsteps*100,teng,time.time()-ttime))
         tnow = time.time()
 
 print('Done dynamics! total time = {:g} seconds'.format(time.time()-ttime))
-teng = mdoutput.write_thermo(logfile,istep+1,natoms,masses,pos,vel,pot)
 mdoutput.write_init("test.init",istep-1,natoms,atypes,nbonds,tbonds,box,mass,pos,vel,bonds,aatype)
+
+#Create histogram!
+nconf = len(eig_array)
+if(nconf==0):
+    print("No configurations calculated eigenvalues! thus NOT calculating historgram")
+else:
+    print("Creating Histogram with",len(eig_array),"configurations")
+    histo,histedge = numpy.histogram(numpy.array(eig_array),bins='auto',density=True)
+    histdat = numpy.zeros((histo.size,2))
+    for i in range(histo.size):
+        histdat[i][0] = (histedge[i]+histedge[i+1])/2
+        histdat[i][1] = histo[i]
+        #print(histo,histedge,histdat)
+    head = "Histogram of eigenvalues " + sys.argv[0] + " " + str(len(eig_array))
+    numpy.savetxt(inmfile,(histdat),header=head,fmt="%g")
+
+print("Done!")
 exit(0)
