@@ -2,9 +2,24 @@
 
 import numpy
 
+#------------------------------------------------------------------
+def write_dump_vel(velfile,istep,natoms,vel):
+    global fowrite_vel
+
+    try: fowrite_vel  # has fowrite been assigned yet?
+    except NameError:
+        fowrite_vel = open(velfile,"w")
+
+    fowrite_vel.write("# {} step {}\n".format(natoms,istep))
+    for i in range(natoms):
+        line = str(vel[i][0]) + " " + str(vel[i][1]) + " " + str(vel[i][2]) + "\n"
+        fowrite_vel.write(line)
+    # fo.close()
+    return 0
+
+#------------------------------------------------------------------
 def write_dump(dumpfile,istep,natoms,pos,aatype):
     global fowrite
-
     try: fowrite  # has fowrite been assigned yet?
     except NameError:
         fowrite = open(dumpfile,"w")
