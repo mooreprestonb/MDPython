@@ -134,15 +134,15 @@ mdlj.zero_momentum(masses,vel)  # zero the momentum
 force()
 teng = mdoutput.write_thermo(logfile,0,natoms,masses,pos,vel,pot)
 
-itime = 10 # report total energy every 1 seconds
+itime = 1
 tnow = time.time()
 ttime = tnow
 tol = 1e-8
-#inmo = 100 # write hessian ever 10 steps
+dump_vel = 5
 
 print("Running dynamics")
 
-eig_array = []
+eig_array = [] # empty array for the eigenvalues
 
 for istep in range(1,nsteps+1):
 
@@ -167,7 +167,7 @@ for istep in range(1,nsteps+1):
         if(abs(w[idx]) > tol):
             print("Warning! Removing eigenvalue > tol",w[idx])
         w = numpy.delete(w,idx)
-        eig_array.append(w.real) # only get real part of array - imag do to round off error is small so we throw away. 
+        eig_array.append(w.real) # only get real part of array - imag do to round off error is small so we throw away.
         # mdoutput.write_inm(istep,hessian)
 
     if(istep%ithermo==0): # write out thermodynamic data
@@ -175,6 +175,9 @@ for istep in range(1,nsteps+1):
 
     if(istep%idump==0): # dump to xyz file so we can see this in lammps
         mdoutput.write_dump(dumpfile,istep,natoms,pos,aatype)
+
+    if(istep%dump_vel==0):
+        mdoutput.write_dump_vel("vel.dat",istep*dt,natoms,vel)
 
     if(itime < time.time()-tnow): # report where we are
         print('step = {}/{} = {:.4f}%, teng = {:g}, time = {:g}'.format(istep,nsteps,istep/nsteps*100,teng,time.time()-ttime))
@@ -189,7 +192,8 @@ if(nconf==0):
     print("No configurations calculated eigenvalues! thus NOT calculating historgram")
 else:
     print("Creating Histogram with",len(eig_array),"configurations")
-    histo,histedge = numpy.histogram(numpy.array(eig_array),bins='auto',density=True)
+    bin_ct = int(numpy.log2(nconf) + 1)
+    histo,histedge = numpy.histogram(numpy.array(eig_array),bins=bin_ct,density=True)
     histdat = numpy.zeros((histo.size,2))
     for i in range(histo.size):
         histdat[i][0] = (histedge[i]+histedge[i+1])/2
