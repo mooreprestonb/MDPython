@@ -15,13 +15,13 @@ global box
 box = numpy.zeros(3)
 
 re_dict_data = {
-    'natoms': re.compile(r'^(?P<natoms>\d+) atoms\n'),
-    'atypes': re.compile(r'^(?P<atypes>\d+) atom types\n'),
-    'nbonds': re.compile(r'^(?P<nbonds>\d+) bonds\n'),
-    'tbonds': re.compile(r'^(?P<tbonds>\d+) bond types\n'),
-    'box_x': re.compile(r'^(?P<box_x>[.\d-]+ [.\d-]+) xlo xhi\n'),
-    'box_y': re.compile(r'^(?P<box_y>[.\d-]+ [.\d-]+) ylo yhi\n'),
-    'box_z': re.compile(r'^(?P<box_z>[.\d-]+ [.\d-]+) zlo zhi\n')
+    'natoms': re.compile(r'^(?P<natoms>\d+)\s+atoms\n'),
+    'atypes': re.compile(r'^(?P<atypes>\d+)\s+atom\s+types\n'),
+    'nbonds': re.compile(r'^(?P<nbonds>\d+)\s+bonds\n'),
+    'tbonds': re.compile(r'^(?P<tbonds>\d+)\s+bond\s+types\n'),
+    'box_x': re.compile(r'^(?P<box_x>[.\d-]+\s+[.\d-]+)\s+xlo\s+xhi\n'),
+    'box_y': re.compile(r'^(?P<box_y>[.\d-]+\s+[.\d-]+)\s+ylo\s+yhi\n'),
+    'box_z': re.compile(r'^(?P<box_z>[.\d-]+\s+[.\d-]+)\s+zlo\s+zhi\n')
 }
 
 data_lst = [key for key in re_dict_data]
@@ -203,10 +203,10 @@ re_dict_sysvals = {
     'initfile': re.compile(r'^read_data\s+(?P<initfile>[_A-z.\d]+)'),
     'ithermo': re.compile(r'^thermo\s+(?P<ithermo>\d+)'),
     'dump': re.compile(r'^dump\s+[A-z]+\s+all\s+[A-z]+\s+(?P<dump>\d+ [_A-z.\d]+)'),
-    'bond_style': re.compile(r'^bond_style\s+(?P<bond_style>[A-z ]+)'),
+    'bond_style': re.compile(r'^bond_style\s+(?P<bond_style>[A-z]+)'),
     'logfile': re.compile(r'^log\s+(?P<logfile>[_A-z.\d]+)'),
-    'inm': re.compile(r'^inm\s+(?P<inm>[_A-z.\d]+ \d+)'),
-    'reps': re.compile(r'^replicate\s+(?P<reps>\d+ \d+ \d+)'),
+    'inm': re.compile(r'^inm\s+(?P<inm>[_A-z.\d]+\s+\d+)'),
+    'reps': re.compile(r'^replicate\s+(?P<reps>\d+\s+\d+\s+\d+)'),
     'fix': re.compile(r'^fix\s+[_A-z\d]+\s+[_A-z\d]+\s+(?P<fix>[A-z]+)')
 }
 
