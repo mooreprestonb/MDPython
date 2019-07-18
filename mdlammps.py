@@ -4,12 +4,15 @@
 import sys
 import numpy
 import time
+import re
 
 #import mdglobal  # file with global variables
 import mdinput   # file with input routines
 import mdoutput  # file with output routines
-import mdlj      # file with non-bonded routines
+#import mdlj      # file with non-bonded routines
 import mdbond    # file with bonding routines
+#import mdbend    # file with bending routines
+import mdstep    # file with integration routines
 
 # assigned global variables
 global natoms       # number of atoms
@@ -28,96 +31,46 @@ global bonds        # bonds (array with type, ibond, jbond)
 global hessian      # hessian matrix
 global abtype       # array of bond types
 global logfile      # file to output thermodata
+global ensamble
 
 box = numpy.zeros(3)
 pot = numpy.zeros(6)
-
-#-------------------------------------------------
-def readinit(datafile): # read lammps init data file
-
-    global natoms, atypes, nbonds, tbonds, box
-
-    print ("Reading",datafile)
-    fi = open(datafile,"r")
-    lines = fi.readlines() # read in lines all at once
-    fi.close()
-
-    data =[0]*7
-    mdinput.readinvals(lines,data)
-
-    # unpack or destructuring
-    natoms, atypes, nbonds, tbonds, box[0], box[1], box[2] = data
-    print("Natoms",natoms," Atypes",atypes," Bonds",nbonds," Btypes",tbonds)
-    print("Box",box)
-
-    # allocate arrays from data
-    global mass, aatype, pos, vel, acc, masses, bonds, hessian
-
-    mass = numpy.zeros(atypes)
-    aatype = numpy.zeros(natoms,dtype=int)
-    pos = numpy.zeros((natoms,3))
-    vel = numpy.zeros((natoms,3))
-    acc = numpy.zeros((natoms,3))
-    masses = numpy.zeros((natoms,3))
-    bonds = numpy.zeros((nbonds,3),dtype=int)
-    hessian = numpy.zeros((3*natoms,3*natoms))
-
-    mdinput.getmasses(lines,atypes,mass)
-    mdinput.getatoms(lines,natoms,aatype,pos,mass,masses)
-    mdinput.getvel(lines,natoms,vel)
-    mdinput.getbonds(lines,nbonds,bonds)
 
 #-------------------------------------------
 def readin(): # read lammps like infile
 
     global nsteps, dt, initfile, ithermo, idump, dumpfile, bond_style, bondcoeff
     global logfile, inmfile, inmo
-
-    logfile = None
-    inmfile = None
-    print ("Reading",sys.argv[1])
-    fi = open(sys.argv[1],"r")
-    lines = fi.readlines() # read in lines all at once
-    fi.close()
+    global bondcoeff, reps, ensamble
+    global natoms, atypes, nbonds, tbonds, box
 
     # print lines
-    data =[None]*10
-    mdinput.readsysvals(lines,data) # read lammps in file
-    nsteps, dt, initfile, ithermo, idump, dumpfile, bond_styles, logfile, inmfile, inmo = data
-    print("nsteps, dt, initfile, ithermo, idump, dumpfile, bond_styles, logfile, inmfile, inm",data)
+    data, bond_style, bondcoeff, reps, fix_type, var_lst = mdinput.readsysvals(sys.argv[1]) # read lammps in file
+    dt, initfile, bond_styles, idump, dumpfile, ithermo, logfile, inmfile, inmo, nsteps = data
+    print("dt, initfile, bond_styles, idump, dumpfile, ithermo, logfile, inmfile, inmo, nsteps",data)
+    
+    natoms, atypes, nbonds, tbonds, box[0], box[1], box[2] = mdinput.readinvals(initfile) 
+    print("Natoms",natoms," Atypes",atypes," Bonds",nbonds," Btypes",tbonds)
+    print("Box",box)
 
-    readinit(initfile)  # read initfile to get atoms bonds and types
+    # allocate arrays from data
+    global mass, aatype, pos, vel, acc, masses, bonds, hessian, zeta, Q
 
-    global bondcoeff
-    bondcoeff = numpy.zeros((tbonds,3))  # allocate bondcoeff
-    bond_style = mdinput.getbondcoeff(lines,bond_styles,tbonds,bondcoeff) # readin bondcoeff
+    acc = numpy.zeros((natoms,3))
 
-#-----------------------------------------------------------
-def force(): # get forces from potentials
-    global pot, nbonds, bonds, bondcoeff
-    global masses, pos, vel, acc
+    mass, aatype, pos, vel, masses, bonds = mdinput.make_arrays(initfile,reps)
 
-    acc.fill(0) # zero out forces/acceration
-    # lj
-    pot[0] = 0
-    # bonds
-    pot[1] = mdbond.bond(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses)
-    # bend
-    pot[2] = 0
-    # torsion
-    pot[3] = 0
-
-    # change forces into accelerations
-    acc /= masses
-
-#-----------------------------------------------------------
-def step(): # velocity verlet (using 1/2 steps)
-    global pos, vel, acc, dt
-    # print istep,pos,vel,acc
-    vel += acc*dt/2.0
-    pos += vel*dt
-    force()
-    vel += acc*dt/2.0
+    if re.search('nve',fix_type,flags=re.IGNORECASE):
+        ensamble = 0
+    elif re.search('nvt',fix_type,flags=re.IGNORECASE):
+        global T, Tdamp, Q
+        var = [float(num) for num in var_lst[:3]]
+        T, T, Tdamp = var
+        Q = numpy.array([3*natoms*T*Tdamp*Tdamp]*2)
+        ensamble = 1
+    else:
+        print("Error: no ensamble? ",fix_type)
+        exit(1)
 
 #-----------------------------------------------------------
 
@@ -125,20 +78,29 @@ def step(): # velocity verlet (using 1/2 steps)
 if (len(sys.argv) != 2):  # error check that we have an input file
     print("No input file? or wrong number of arguments")
     exit(1)
+
+if not re.search(re.compile(r'.+\.in'),sys.argv[1]):
+    print('Incorrect input file type.')
+    exit(1)
+
 print (sys.argv)
 
 readin() # read infile
 
 # inital force and adjustments
-mdlj.zero_momentum(masses,vel)  # zero the momentum
-force()
+mdstep.zero_momentum(masses,vel)  # zero the momentum
+mdstep.force(natoms,pot,nbonds,bond_style,bondcoeff,bonds,masses,pos,vel,acc)
 teng = mdoutput.write_thermo(logfile,0,natoms,masses,pos,vel,pot)
 
 itime = 1
 tnow = time.time()
 ttime = tnow
 tol = 1e-8
-dump_vel = 5
+dump_vel = 5 # how often to dump velocities
+if(fix_type == 'nvt'):
+    ensamble = 1 # nvt
+else:
+    ensamble = 0 # nve
 
 print("Running dynamics")
 
@@ -146,7 +108,7 @@ eig_array = [] # empty array for the eigenvalues
 
 for istep in range(1,nsteps+1):
 
-    step() # take a step
+    mdstep.step(natoms,ensamble,dt,pot,nbonds,bond_style,bondcoeff,bonds,masses,pos,vel,acc)
 
     if(istep%inmo==0): # get instantaneous normal modes
         hessian = numpy.zeros((pos.size,pos.size))
@@ -154,7 +116,7 @@ for istep in range(1,nsteps+1):
 
         # print(hessian)
         w,v = numpy.linalg.eig(hessian)
-        # remove lowest eigegvalues (translations of entire system)
+        # remove 3 lowest eigegvalues (should be translations of entire system)
         idx = numpy.argmin(numpy.abs(w.real))
         if(abs(w[idx]) > tol):
             print("Warning! Removing eigenvalue > tol",w[idx])

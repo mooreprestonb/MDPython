@@ -1,240 +1,285 @@
-# routines for input MDPython
+# import routines for MDPython
+#TODO
+#Fix replicate method
+#Add angles
 
 import re
+import numpy
 
-#-------------------------------------------------
-def findline1(lines,val): # find line with first word val
-    for ln in range(len(lines)):  # loop over lines 
-        words = lines[ln].split() # get words from line
-        #print words
-        if(len(words)>0): # make sure it is not a blank line
-            if (words[0] == val):
-                return ln
-        
-    print ("Word",val," not found!")
-    return -1
+global natoms
+global atypes
+global nbonds
+global tbonds
+global box
 
-#-------------------------------------------------
-def findline2(lines,val): # find line with word anywhere
-    for ln in range(len(lines)):  # loop over lines
-        # do we have val in line
-        if re.search(val,lines[ln],flags=re.IGNORECASE): 
-            return ln
-            
-    print ("Word",val,"not found!")
-    return -1
+box = numpy.zeros(3)
 
-#-------------------------------------------------
-def readinvals(lines,data): # read lammps init data file
+re_dict_data = {
+    'natoms': re.compile(r'^(?P<natoms>\d+) atoms\n'),
+    'atypes': re.compile(r'^(?P<atypes>\d+) atom types\n'),
+    'nbonds': re.compile(r'^(?P<nbonds>\d+) bonds\n'),
+    'tbonds': re.compile(r'^(?P<tbonds>\d+) bond types\n'),
+    'box_x': re.compile(r'^(?P<box_x>[.\d-]+ [.\d-]+) xlo xhi\n'),
+    'box_y': re.compile(r'^(?P<box_y>[.\d-]+ [.\d-]+) ylo yhi\n'),
+    'box_z': re.compile(r'^(?P<box_z>[.\d-]+ [.\d-]+) zlo zhi\n')
+}
+
+data_lst = [key for key in re_dict_data]
+
+#-------------------------------------------------------------
+def parse_line(line,d):
+    for key, rx in d.items():
+        match = rx.search(line)
+        if match:
+            return key, match
+    return(None, None)
+
+#-------------------------------------------------------------
+def readinvals(datafile):
+    data = [-1]*7
+    with open(datafile,'r') as f:
+        line = f.readline()
+        while(line):
+            key, match = parse_line(line,re_dict_data)
+            if match:
+                val = match.group(key)
+            if key == 'natoms':
+                data[0] = int(val)
+            if key == 'atypes':
+                data[1] = int(val)
+            if key == 'nbonds':
+                data[2] = int(val)
+            if key == 'tbonds':
+                data[3] = int(val)
+            if key == 'box_x':
+                val = val.split()
+                temp = float(val[1]) - float(val[0])
+                data[4] = temp
+            if key == 'box_y':
+                val = val.split()
+                temp = float(val[1]) - float(val[0])
+                data[5] = temp
+            if key == 'box_z':
+                val = val.split()
+                temp = float(val[1]) - float(val[0])
+                data[6] = temp
+            line = f.readline()
     
-    # global natoms
-    ln = findline2(lines,"atoms")
-    data[0] = int(lines[ln].split()[0])
-
-    # global atypes
-    ln = findline2(lines,"atom types")
-    data[1] = int(lines[ln].split()[0])
-
-    # global nbonds
-    ln = findline2(lines,"bonds")
-    data[2] = int(lines[ln].split()[0])
-
-    #global tbonds
-    ln = findline2(lines,"bond types")
-    data[3] = int(lines[ln].split()[0])
-
-    # global box
-    # box = numpy.zeros(3)
-    ln = findline2(lines,"xlo xhi")
-    xlo = float(lines[ln].split()[0])
-    xhi = float(lines[ln].split()[1])
-    data[4] = xhi-xlo
-
-    ln = findline2(lines,"ylo yhi")
-    ylo = float(lines[ln].split()[0])
-    yhi = float(lines[ln].split()[1])
-    data[5] = yhi-ylo
-
-    ln = findline2(lines,"zlo zhi")
-    zlo = float(lines[ln].split()[0])
-    zhi = float(lines[ln].split()[1])
-    data[6] = zhi-zlo
-
-    #print("Natoms",data[0]," Atypes",data[1]," Bonds",data[2]," Btypes",data[3])
-    #print("Box",data[4],data[5],data[6])
-
-#----------------------------------------------------------------
-def getmasses(lines,atypes,mass):
-    ln = findline1(lines,"Masses")
-    if (len(lines[ln+1].split())==0):
-        ioff = ln+2
-    else:
-        ioff = ln+1
-        
-    for i in range(atypes):
-        words = lines[ioff+i].split()
-        if (int(words[0]) != i+1):
-            print ("Error: while assigning masses at line",ln)
-            print ("Expecting",i+1,"got",words[0],"from",lines[ln+2])
+    for i in range(len(data)):
+        if data[i] == -1:
+            print('Not enough data found. Check init file for proper formatting.')
+            print('Not found:', data_lst[i])
+            print('Data found:',data)
             exit(1)
-        mass[i] = float(words[1])
-    print ("Assigned masses")
 
-#----------------------------------------------------------------
-def getatoms(lines,natoms,aatype,pos,mass,masses):
-    ln = findline1(lines,"Atoms")
-    if (len(lines[ln+1].split())==0):
-        ioff = ln+2
-    else:
-        ioff = ln+1
+    return data
 
-    for i in range(natoms):
-        words = lines[ioff+i].split()
-        if (int(words[0]) != i+1):
-            print ("Error: while assigning atoms at line",ln)
-            print ("Expecting",i+1,"got",words[0],"from",lines[ln+2])
-            exit(1)
-        aatype[i] = int(words[1])
-        pos[i][0] = float(words[4])
-        pos[i][1] = float(words[5])
-        pos[i][2] = float(words[6])
-        masses[i][0] = mass[aatype[i]-1] 
-        masses[i][1] = mass[aatype[i]-1] 
-        masses[i][2] = mass[aatype[i]-1] 
-    print ("Assigned atom types and positions")
+#-------------------------------------------------------------
+re_dict_arrays = {
+    'masses': re.compile(r'^Masses'),
+    'atoms': re.compile(r'^Atoms'),
+    'vels': re.compile(r'^Velocities'),
+    'bonds': re.compile(r'^Bonds')
+}
 
-#----------------------------------------------------------------
-def getvel(lines,natoms,vel):
-    ln = findline1(lines,"Velocities")
-    if (ln!=-1):
-        if (len(lines[ln+1].split())==0):
-            ioff = ln+2
-        else:
-            ioff = ln+1
-        for i in range(natoms):
-            words = lines[ioff+i].split()
-            if (int(words[0]) != i+1):
-                print ("Error: while assigning velocities at line",ln)
-                print ("Expecting",i+1,"got",words[0],"from",lines[ln+2])
-                exit(1)
-            vel[i][0] = float(words[1])
-            vel[i][1] = float(words[2])
-            vel[i][2] = float(words[3])
-        print ("Assigned Velocities")
-    else:
-        print ("Velocities will start at zero")
-#----------------------------------------------------------------
-def getbonds(lines,nbonds,bonds):
-    ln = findline1(lines,"Bonds")
-    if (ln!=-1):
-        if (len(lines[ln+1].split())==0):
-            ioff = ln+2
-        else:
-            ioff = ln+1
-
-        for i in range(nbonds):
-            words = lines[ioff+i].split()
-            if (int(words[0]) != i+1):
-                print("Error: while assigning velocities at line",ln)
-                print("Expecting",i+1,"got",words[0],"from",lines[ln+2])
-                exit(1)
-            bonds[i][0] = int(words[1])-1  # type
-            bonds[i][1] = int(words[2])-1  # atom 1
-            bonds[i][2] = int(words[3])-1  # atom 2
-        print("Assigned Bonds")
-    else:
-        print("No bonds found!")
+#-------------------------------------------------------------
+def make_arrays(datafile,reps):
+    global natoms, atypes, nbonds, tbonds, box
+    
+    natoms, atypes, nbonds, tbonds, box[0], box[1], box[2] = readinvals(datafile) 
+    
+    with open(datafile,'r') as f:
+        mass = []
+        aatype = []
+        pos = []
+        vel = []
+        masses = []
+        bonds = []
         
-#----------------------------------------------------------------
-def getbondcoeff(lines,bond_styles,tbonds,bondcoeff):
-    if re.search("harmonic",bond_styles,flags=re.IGNORECASE): 
-        print("Reading in harmonic bonds coefficents for",tbonds,"types")
-        bond_style = 0 #harmonic bond style
-        ln = findline1(lines,"bond_coeff")
-        for i in range(tbonds):
-            if(lines[ln+i].split()[0] != "bond_coeff"):
-                print("Error not enough bond_coeff's")
-                exit(1)
-            btype = lines[ln+i].split()[1]
-            if (int(btype) != i+1):
-                print("Error wrong type in bond_coeff at line",ln+i)
-                print(lines[ln+i])
-                exit(1)
-            else:
-                bondcoeff[i][0] = float(lines[ln+i].split()[2])
-                bondcoeff[i][1] = float(lines[ln+i].split()[3])
-        if(len(lines[ln+i+1].split())>0):
-            if (lines[ln+i+1].split()[0] == "bond_coeff"):
-                print("Error: too MANY bond_coeffs for types")
-                print(i,tbonds)
-                exit(1)
+        line = f.readline()
+        while line:
+            key, match = parse_line(line,re_dict_arrays)
+            count = 1
+            if key == 'masses':
+                line = f.readline()
+                while len(line.split()) == 0:
+                    line = f.readline()
+                for i in range(atypes):
+                    words = line.split()
+                    if int(words[0]) != count:
+                        print('Error while assigning masses')
+                        print('Expecting',count,'got',words[0])
+                        exit(1)
+                    m = float(words[1])
+                    mass.append(m)
+                    count += 1
+                    line = f.readline()
+                print('Assigned masses')
+            if key == 'atoms':
+                line = f.readline()
+                while len(line.split()) == 0:
+                    line = f.readline()
+                for i in range(natoms):
+                    words = line.split()
+                    if int(words[0]) != count:
+                        print('Error while assigning atoms')
+                        print('Expecting',count,'got',line.split()[0])
+                        exit(1)
+                    atype = int(words[1])
+                    aatype.append(atype)
+                    pos.append([float(words[j + 4]) for j in range(3)])
+                    masses.append([mass[atype - 1] for j in range(3)])
+                    count += 1
+                    line = f.readline()
+                print('Assigned atom types and positions')
+            if key == 'vels':
+                line = f.readline()
+                while len(line.split()) == 0:
+                    line = f.readline()
+                for i in range(natoms):
+                    words = line.split()
+                    if int(words[0]) != count:
+                        print('Error while assigning velocities')
+                        print('Expecting',count,'got',line.split()[0])
+                        exit(1)
+                    vel.append([float(words[j + 1]) for j in range(3)])
+                    count += 1
+                    line = f.readline()
+                print('Assigned velocities')
+            if key == 'bonds':
+                line = f.readline()
+                while len(line.split()) == 0:
+                    line = f.readline()
+                for i in range(nbonds):
+                    words = line.split()
+                    if int(words[0]) != count:
+                        print('Error while assigning velocities')
+                        print('Expecting',count,'got',line.split()[0])
+                        exit(1)
+                    bonds.append([int(words[j + 1])-1 for j in range(3)])
+                    count += 1
+                    line = f.readline()
+                print('Assigned bonds')
+            line = f.readline()
+    
+    if len(vel) == 0:
+        vel = numpy.zeros((natoms,3))
+        print('Velocities will start at 0')
+    if len(bonds) == 0:
+        print('No bonds found')
 
-    elif re.search("morse",bond_styles,flags=re.IGNORECASE): 
-        print("Reading in morse bonds coefficents for",tbonds,"types")
-        bond_style = 1 # morse bond style
-        # bondcoeff = numpy.zeros((tbonds,3))  # read in D alpha r0
-        ln = findline1(lines,"bond_coeff")
-        for i in range(tbonds):
-            if(lines[ln+i].split()[0] != "bond_coeff"):
-                print("Error not enough bond_coeff's")
-                exit(1)
-            btype = lines[ln+i].split()[1]
-            if (int(btype) != i+1):
-                print("Error wrong type in bond_coeff at line",ln+i)
-                print(lines[ln+i])
-                exit(1)
-            else:
-                bondcoeff[i][0] = float(lines[ln+i].split()[2])
-                bondcoeff[i][1] = float(lines[ln+i].split()[3])
-                bondcoeff[i][2] = float(lines[ln+i].split()[4])
-        if(len(lines[ln+i+1].split())>0):
-            if (lines[ln+i+1].split()[0] == "bond_coeff"):
-                print("Error: too MANY bond_coeffs for types")
-                print(i,tbonds)
-                exit(1)
-    else:
-        print ("Error bond_style \"",bond_styles,"\" not implemented")
-        exit(1)
+    pos_copy = pos[:]
+    vel_copy = vel[:]
+    bonds_copy = bonds[:]
+    count = 1 
 
-    return bond_style
-#----------------------------------------------------------------
-def readsysvals(lines,data): # read lammps init data file
+    for i in range(reps[0]):
+        for j in range(reps[1]):
+            for k in range(reps[2]):
+                if i == j == k == 0:
+                    continue
+                offset = [i*box[0],j*box[1],k*box[2]]
+                for vec in pos_copy:
+                    temp = [sum(x) for x in zip(vec,offset)]
+                    pos.append(temp)
+                for vec in vel_copy:
+                    numpy.append(vel,vec)
+                bond_offset = [0,count*len(pos_copy),count*len(pos_copy)]
+                for bond in bonds_copy:
+                    temp = [sum(x) for x in zip(bond,bond_offset)]
+                    bonds.append(temp)
+                count += 1
 
-    # global nsteps
-    ln = findline1(lines,"run")
-    data[0] = int(lines[ln].split()[1])
+    fact = numpy.prod(reps)
+    natoms *= fact
+    nbonds *= fact
+    box = [numpy.prod(x) for x in zip(box,reps)]
 
-    # global dt
-    ln = findline1(lines,"timestep")
-    data[1] = float(lines[ln].split()[1])
+    return numpy.array(mass), numpy.array(aatype), numpy.array(pos), numpy.array(vel), numpy.array(masses), numpy.array(bonds)
 
-    # global initfile
-    ln = findline1(lines,"read_data")
-    data[2] = (lines[ln].split()[1])
+re_dict_sysvals = {
+    'nsteps': re.compile(r'^run\s+(?P<nsteps>\d+)'),
+    'dt': re.compile(r'^timestep\s+(?P<dt>[\d.]+)'),
+    'initfile': re.compile(r'^read_data\s+(?P<initfile>[_A-z.\d]+)'),
+    'ithermo': re.compile(r'^thermo\s+(?P<ithermo>\d+)'),
+    'dump': re.compile(r'^dump\s+[A-z]+\s+all\s+[A-z]+\s+(?P<dump>\d+ [_A-z.\d]+)'),
+    'bond_style': re.compile(r'^bond_style\s+(?P<bond_style>[A-z ]+)'),
+    'logfile': re.compile(r'^log\s+(?P<logfile>[_A-z.\d]+)'),
+    'inm': re.compile(r'^inm\s+(?P<inm>[_A-z.\d]+ \d+)'),
+    'reps': re.compile(r'^replicate\s+(?P<reps>\d+ \d+ \d+)'),
+    'fix': re.compile(r'^fix\s+[_A-z\d]+\s+[_A-z\d]+\s+(?P<fix>[A-z]+)')
+}
 
-    # global ithermo
-    ln = findline1(lines,"thermo")
-    data[3] = int(lines[ln].split()[1])
+sysvals_lst = [key for key in re_dict_sysvals]
 
-    #global idump, dumpfile
-    ln = findline1(lines,"dump")
-    data[4] = int(lines[ln].split()[4])
-    data[5] = lines[ln].split()[5]
+#-------------------------------------------------------------
+def readsysvals(infile):
 
-    # global bond_style
-    ln = findline1(lines,"bond_style")
-    data[6] = lines[ln].split()[1]
+    f = open(infile,'r')
+    data = [-1]*10
+    bondcoeff = []
+    reps = [1,1,1]
+    line = f.readline()
+    while line:
+        key, match = parse_line(line,re_dict_sysvals)
+        if match:
+            val = match.group(key)
+        if key == 'nsteps':
+            data[9] = int(val)
+        if key == 'dt':
+            data[0] = float(val)
+        if key == 'initfile':
+            initfile = val.strip(' ')
+            data[1] = initfile
+            natoms, atypes, nbonds, tbonds, box[0], box[1], box[2] = readinvals(initfile) 
+        if key == 'ithermo':
+            data[5] = int(val)
+        if key == 'logfile':
+            data[6] = val.strip(' ')
+        if key == 'dump':
+            val = val.split()
+            data[3] = int(val[0])
+            data[4] = val[1]
+        if key == 'inm':
+            val = match.group(key).split()
+            data[7] = val[0]
+            data[8] = int(val[1])
+        if key == 'bond_style':
+            data[2] = val.strip(' ')
+            if re.search('harmonic',val,flags=re.IGNORECASE):
+                bond_style = 0
+                print('Reading in harmonic bond coefficients for',tbonds,'types')
+                for i in range(tbonds):
+                    line = f.readline()
+                    bondcoeff.append([float(line.split()[j+2]) for j in range(2)])
+            elif re.search('morse',val,flags=re.IGNORECASE):
+                bond_style = 1
+                print('Reading in morse bond coefficients for',tbonds,'types')
+                for i in range(tbonds):
+                    line = f.readline()
+                    bondcoeff.append([float(line.split()[j+2]) for j in range(3)])
+                else:
+                    print('Unrecognized bond type')
+        if key == 'fix':
+            fix_type = val
+            print(fix_type)
+            words = line.split()
+            var_lst = words[4:]
+            print(var_lst)
+        if key == 'reps':
+            vals = match.group(key).split()
+            reps = [int(num) for num in vals]
+        line = f.readline()
 
-    # global logfile
-    ln = findline1(lines,"log")
-    if(ln!=-1):
-        data[7] = lines[ln].split()[1]
+    f.close()
+    bondcoeff = numpy.array(bondcoeff)
 
-    # global inmfile, inmo
-    ln = findline1(lines,"inm")
-    if(ln!=-1):
-        data[8] = lines[ln].split()[1]
-        data[9] = int(lines[ln].split()[2])
-    else:
-        data[8] = "evhist.dat"
-        data[9] = data[1]
+    for i in range(len(data)):
+        if data[i] == -1:
+            print('Not enough data found. Check \"infile\" for proper formatting.')
+            print('Not found:', sysvals_lst[i])
+            print('data:',data)
+            exit(1)
+
+    return(data, bond_style, bondcoeff, reps, fix_type, var_lst)
+#-------------------------------------------------------------

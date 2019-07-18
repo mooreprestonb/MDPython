@@ -3,12 +3,13 @@
 import numpy
 import sys
 import time
+from scipy.fftpack import dct
 
 file = open("vel.dat","r")
 
 lines = file.readlines()
 
-nwindow = 1000
+nwindow = 2**10
 natoms = lines[0].split()[1]
 natoms = int(natoms)
 dt = float(lines[natoms+1].split()[3]) - float(lines[0].split()[3])
@@ -27,7 +28,7 @@ for i in range(nwindow): # get initial data
         #print(i,j,line)
         data[i][j] = line
 
-itime = 1
+itime = 10
 tnow = time.time()
 ttime = tnow
 
@@ -50,10 +51,15 @@ for i in range(nconf-nwindow):
 
 vac /= (nconf-nwindow)*natoms # normalize
 
+# vac /= vac[0] # set initial value to 1
+
+vac_dct = dct(vac)
+print (vac_dct)
+
 print("Writing vac.dat")
 file = open("vac.dat","w")
 for i in range(nwindow):
-    line = str(dt*i) + " " + str(vac[i]) + "\n"
+    line = str(dt*i) + " " + str(vac[i]) + " " + str(vac_dct[i]) + "\n"
     file.write(line)
 
 #vac_fft = numpy.fft.fft(vac)
