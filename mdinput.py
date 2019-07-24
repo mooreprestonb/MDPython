@@ -4,7 +4,7 @@
 #Add angles
 
 import re
-import numpy
+import numpy as np
 
 global natoms
 global atypes
@@ -12,34 +12,33 @@ global nbonds
 global tbonds
 global box
 
-box = numpy.zeros(3)
+box = np.zeros(3)
 
 re_dict_data = {
-    'natoms': re.compile(r'^(?P<natoms>\d+)\s+atoms\n'),
-    'atypes': re.compile(r'^(?P<atypes>\d+)\s+atom\s+types\n'),
-    'nbonds': re.compile(r'^(?P<nbonds>\d+)\s+bonds\n'),
-    'tbonds': re.compile(r'^(?P<tbonds>\d+)\s+bond\s+types\n'),
-    'box_x': re.compile(r'^(?P<box_x>[.\d-]+\s+[.\d-]+)\s+xlo\s+xhi\n'),
-    'box_y': re.compile(r'^(?P<box_y>[.\d-]+\s+[.\d-]+)\s+ylo\s+yhi\n'),
-    'box_z': re.compile(r'^(?P<box_z>[.\d-]+\s+[.\d-]+)\s+zlo\s+zhi\n')
-}
+        'natoms': re.compile(r'^(?P<natoms>\d+)\s+atoms\n'),
+        'atypes': re.compile(r'^(?P<atypes>\d+)\s+atom types\n'),
+        'nbonds': re.compile(r'^(?P<nbonds>\d+)\s+bonds\n'),
+        'tbonds': re.compile(r'^(?P<tbonds>\d+)\s+bond types\n'),
+        'box_x': re.compile(r'^(?P<box_x>[.\d-]+\s+[.\d-]+)\s+xlo\s+xhi\n'),
+        'box_y': re.compile(r'^(?P<box_y>[.\d-]+\s+[.\d-]+)\s+ylo\s+yhi\n'),
+        'box_z': re.compile(r'^(?P<box_z>[.\d-]+\s+[.\d-]+)\s+zlo\s+zhi\n')
+        }
 
 data_lst = [key for key in re_dict_data]
 
-#-------------------------------------------------------------
 def parse_line(line,d):
     for key, rx in d.items():
         match = rx.search(line)
         if match:
             return key, match
-    return(None, None)
 
-#-------------------------------------------------------------
+    return None, None
+
 def readinvals(datafile):
-    data = [-1]*7
     with open(datafile,'r') as f:
+        data = [-1]*7
         line = f.readline()
-        while(line):
+        while line:
             key, match = parse_line(line,re_dict_data)
             if match:
                 val = match.group(key)
@@ -69,20 +68,17 @@ def readinvals(datafile):
         if data[i] == -1:
             print('Not enough data found. Check init file for proper formatting.')
             print('Not found:', data_lst[i])
-            print('Data found:',data)
             exit(1)
 
     return data
 
-#-------------------------------------------------------------
 re_dict_arrays = {
-    'masses': re.compile(r'^Masses'),
-    'atoms': re.compile(r'^Atoms'),
-    'vels': re.compile(r'^Velocities'),
-    'bonds': re.compile(r'^Bonds')
-}
+        'masses': re.compile(r'^Masses'),
+        'atoms': re.compile(r'^Atoms'),
+        'vels': re.compile(r'^Velocities'),
+        'bonds': re.compile(r'^Bonds')
+        }
 
-#-------------------------------------------------------------
 def make_arrays(datafile,reps):
     global natoms, atypes, nbonds, tbonds, box
     
@@ -163,7 +159,7 @@ def make_arrays(datafile,reps):
             line = f.readline()
     
     if len(vel) == 0:
-        vel = numpy.zeros((natoms,3))
+        vel = np.zeros((natoms,3))
         print('Velocities will start at 0')
     if len(bonds) == 0:
         print('No bonds found')
@@ -183,103 +179,96 @@ def make_arrays(datafile,reps):
                     temp = [sum(x) for x in zip(vec,offset)]
                     pos.append(temp)
                 for vec in vel_copy:
-                    numpy.append(vel,vec)
+                    np.append(vel,vec)
                 bond_offset = [0,count*len(pos_copy),count*len(pos_copy)]
                 for bond in bonds_copy:
                     temp = [sum(x) for x in zip(bond,bond_offset)]
                     bonds.append(temp)
                 count += 1
 
-    fact = numpy.prod(reps)
+    fact = np.prod(reps)
     natoms *= fact
     nbonds *= fact
-    box = [numpy.prod(x) for x in zip(box,reps)]
+    box = [np.prod(x) for x in zip(box,reps)]
 
-    return numpy.array(mass), numpy.array(aatype), numpy.array(pos), numpy.array(vel), numpy.array(masses), numpy.array(bonds)
+    return np.array(mass), np.array(aatype), np.array(pos), np.array(vel), np.array(masses), np.array(bonds)
 
 re_dict_sysvals = {
-    'nsteps': re.compile(r'^run\s+(?P<nsteps>\d+)'),
-    'dt': re.compile(r'^timestep\s+(?P<dt>[\d.]+)'),
-    'initfile': re.compile(r'^read_data\s+(?P<initfile>[_A-z.\d]+)'),
-    'ithermo': re.compile(r'^thermo\s+(?P<ithermo>\d+)'),
-    'dump': re.compile(r'^dump\s+[A-z]+\s+all\s+[A-z]+\s+(?P<dump>\d+ [_A-z.\d]+)'),
-    'bond_style': re.compile(r'^bond_style\s+(?P<bond_style>[A-z]+)'),
-    'logfile': re.compile(r'^log\s+(?P<logfile>[_A-z.\d]+)'),
-    'inm': re.compile(r'^inm\s+(?P<inm>[_A-z.\d]+\s+\d+)'),
-    'reps': re.compile(r'^replicate\s+(?P<reps>\d+\s+\d+\s+\d+)'),
-    'fix': re.compile(r'^fix\s+[_A-z\d]+\s+[_A-z\d]+\s+(?P<fix>[A-z]+)')
-}
+        'nsteps': re.compile(r'^run\s+(?P<nsteps>\d+)'),
+        'dt': re.compile(r'^timestep\s+(?P<dt>[\d.]+)'),
+        'initfile': re.compile(r'^read_data\s+(?P<initfile>[_A-z.\d]+)'),
+        'ithermo': re.compile(r'^thermo\s+(?P<ithermo>\d+)'),
+        'dump': re.compile(r'^dump\s+[A-z]+\s+[A-z]+\s+[A-z]+\s+(?P<dump>\d+\s+[_A-z.\d]+)'),
+        'bond_style': re.compile(r'^bond_style\s+(?P<bond_style>[A-z]+)'),
+        'logfile': re.compile(r'^log\s+(?P<logfile>[_A-z.\d]+)'),
+        'inm': re.compile(r'^inm\s+(?P<inm>[_A-z.\d]+\s+\d+)'),
+        'reps': re.compile(r'^replicate\s+(?P<reps>\d+\s+\d+\s+\d+)'),
+        'fix': re.compile(r'^fix\s+[_A-z\d]+\s+[_A-z\d]+\s+(?P<fix>[A-z]+)')
+        }
 
-sysvals_lst = [key for key in re_dict_sysvals]
+sysvals_lst = ['dt','initfile','bond_style','idump','dumpfile','ithermo','logfile','inmfile','inmo','nsteps']
 
-#-------------------------------------------------------------
 def readsysvals(infile):
-
-    f = open(infile,'r')
-    data = [-1]*10
-    bondcoeff = []
-    reps = [1,1,1]
-    line = f.readline()
-    while line:
-        key, match = parse_line(line,re_dict_sysvals)
-        if match:
-            val = match.group(key)
-        if key == 'nsteps':
-            data[9] = int(val)
-        if key == 'dt':
-            data[0] = float(val)
-        if key == 'initfile':
-            initfile = val.strip(' ')
-            data[1] = initfile
-            natoms, atypes, nbonds, tbonds, box[0], box[1], box[2] = readinvals(initfile) 
-        if key == 'ithermo':
-            data[5] = int(val)
-        if key == 'logfile':
-            data[6] = val.strip(' ')
-        if key == 'dump':
-            val = val.split()
-            data[3] = int(val[0])
-            data[4] = val[1]
-        if key == 'inm':
-            val = match.group(key).split()
-            data[7] = val[0]
-            data[8] = int(val[1])
-        if key == 'bond_style':
-            data[2] = val.strip(' ')
-            if re.search('harmonic',val,flags=re.IGNORECASE):
-                bond_style = 0
-                print('Reading in harmonic bond coefficients for',tbonds,'types')
-                for i in range(tbonds):
-                    line = f.readline()
-                    bondcoeff.append([float(line.split()[j+2]) for j in range(2)])
-            elif re.search('morse',val,flags=re.IGNORECASE):
-                bond_style = 1
-                print('Reading in morse bond coefficients for',tbonds,'types')
-                for i in range(tbonds):
-                    line = f.readline()
-                    bondcoeff.append([float(line.split()[j+2]) for j in range(3)])
+    with open(infile,'r') as f:
+        data = [-1]*10
+        bondcoeff = []
+        reps = [1,1,1]
+        line = f.readline()
+        while line:
+            key, match = parse_line(line,re_dict_sysvals)
+            if match:
+                val = match.group(key)
+            if key == 'nsteps':
+                data[9] = int(val)
+            if key == 'dt':
+                data[0] = float(val)
+            if key == 'initfile':
+                initfile = val.strip(' ')
+                data[1] = initfile
+                natoms, atypes, nbonds, tbonds, box[0], box[1], box[2] = readinvals(initfile) 
+            if key == 'ithermo':
+                data[5] = int(val)
+            if key == 'logfile':
+                data[6] = val.strip(' ')
+            if key == 'dump':
+                val = val.split()
+                data[3] = int(val[0])
+                data[4] = val[1]
+            if key == 'inm':
+                val = match.group(key).split()
+                data[7] = val[0]
+                data[8] = int(val[1])
+            if key == 'bond_style':
+                data[2] = val.strip(' ')
+                if re.search('harmonic',val,flags=re.IGNORECASE):
+                    bond_style = 0
+                    print('Reading in harmonic bond coefficients for',tbonds,'types')
+                    for i in range(tbonds):
+                        line = f.readline()
+                        bondcoeff.append([float(line.split()[j+2]) for j in range(2)])
+                elif re.search('morse',val,flags=re.IGNORECASE):
+                    bond_style = 1
+                    print('Reading in morse bond coefficients for',tbonds,'types')
+                    for i in range(tbonds):
+                        line = f.readline()
+                        bondcoeff.append([float(line.split()[j+2]) for j in range(3)])
                 else:
                     print('Unrecognized bond type')
-        if key == 'fix':
-            fix_type = val
-            print(fix_type)
-            words = line.split()
-            var_lst = words[4:]
-            print(var_lst)
-        if key == 'reps':
-            vals = match.group(key).split()
-            reps = [int(num) for num in vals]
-        line = f.readline()
-
-    f.close()
-    bondcoeff = numpy.array(bondcoeff)
+            if key == 'fix':
+                fix_type = val
+                words = line.split()
+                var_lst = words[4:]
+            if key == 'reps':
+                vals = match.group(key).split()
+                reps = [int(num) for num in vals]
+            line = f.readline()
+    
+    bondcoeff = np.array(bondcoeff)
 
     for i in range(len(data)):
         if data[i] == -1:
-            print('Not enough data found. Check \"infile\" for proper formatting.')
+            print('Not enough data found. Check init file for proper formatting.')
             print('Not found:', sysvals_lst[i])
-            print('data:',data)
             exit(1)
 
-    return(data, bond_style, bondcoeff, reps, fix_type, var_lst)
-#-------------------------------------------------------------
+    return data, bond_style, bondcoeff, reps, fix_type, var_lst
