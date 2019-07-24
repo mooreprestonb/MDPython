@@ -3,6 +3,7 @@
 import numpy
 import sys
 import time
+import math
 from scipy.fftpack import dct
 
 file = open("vel.dat","r")
@@ -59,10 +60,14 @@ print (vac_dct)
 print("Writing vac.dat")
 file = open("vac.dat","w")
 for i in range(nwindow):
-    line = str(dt*i) + " " + str(vac[i]) + " " + str(vac_dct[i]) + "\n"
+    line = str(dt*i) + " " + str(vac[i]) + "\n"
     file.write(line)
 
-#vac_fft = numpy.fft.fft(vac)
+file.write("\n# cosine transform\n")
+for i in range(nwindow):
+    line = str(i*math.pi/(dt*nwindow))+ " " + str(vac_dct[i]) + "\n"
+    file.write(line)
+
 #Issues:
     #1.) correlation not going negative
     #2.) FT

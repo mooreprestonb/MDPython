@@ -5,6 +5,7 @@ import sys
 import numpy
 import time
 import re
+import math
 
 #import mdglobal  # file with global variables
 import mdinput   # file with input routines
@@ -41,7 +42,7 @@ def readin(): # read lammps like infile
 
     global nsteps, dt, initfile, ithermo, idump, dumpfile, bond_style, bondcoeff
     global logfile, inmfile, inmo
-    global bondcoeff, reps, ensamble
+    global bondcoeff, reps, ensamble, fix_type
     global natoms, atypes, nbonds, tbonds, box
 
     # print lines
@@ -129,7 +130,7 @@ for istep in range(1,nsteps+1):
         if(abs(w[idx]) > tol):
             print("Warning! Removing eigenvalue > tol",w[idx])
         w = numpy.delete(w,idx)
-        eig_array.append(w.real) # only get real part of array - imag do to round off error is small so we throw away.
+        eig_array.extend(w.real) # only get real part of array - imag do to round off error is small so we throw away.
         # mdoutput.write_inm(istep,hessian)
 
     if(istep%ithermo==0): # write out thermodynamic data
@@ -154,8 +155,16 @@ if(nconf==0):
     print("No configurations calculated eigenvalues! thus NOT calculating historgram")
 else:
     print("Creating Histogram with",len(eig_array),"configurations")
+    earray = numpy.array(eig_array)
+    for i in range(earray.size): # sqrt eigenvaules (from w^2 to w)
+        if(earray[i] < 0) :
+            earray[i] = -math.sqrt(-earray[i])
+        else:
+            earray[i] = math.sqrt(earray[i])
+
     bin_ct = int(numpy.log2(nconf) + 1)
-    histo,histedge = numpy.histogram(numpy.array(eig_array),bins=bin_ct,density=True)
+    bin_ct = 50
+    histo,histedge = numpy.histogram(earray,bins=bin_ct,density=True)
     histdat = numpy.zeros((histo.size,2))
     for i in range(histo.size):
         histdat[i][0] = (histedge[i]+histedge[i+1])/2
