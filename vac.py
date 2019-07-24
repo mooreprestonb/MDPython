@@ -6,7 +6,7 @@ import time
 import math
 from scipy.fftpack import dct
 
-file = open("vel.dat","r")
+file = open(sys.argv[0],"r")
 
 lines = file.readlines()
 
@@ -57,8 +57,8 @@ vac /= (nconf-nwindow)*natoms # normalize
 vac_dct = dct(vac)
 print (vac_dct)
 
-print("Writing vac.dat")
-file = open("vac.dat","w")
+print("Writing",sys.argv[1])
+file = open(sys.argv[1],"w")
 for i in range(nwindow):
     line = str(dt*i) + " " + str(vac[i]) + "\n"
     file.write(line)
@@ -68,6 +68,3 @@ for i in range(nwindow):
     line = str(i*math.pi/(dt*nwindow))+ " " + str(vac_dct[i]) + "\n"
     file.write(line)
 
-#Issues:
-    #1.) correlation not going negative
-    #2.) FT
