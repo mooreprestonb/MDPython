@@ -28,15 +28,14 @@ def zero_momentum(masses,vel):  # zero the liniar momentum
 #-------------------------------------------------------
 # constansts for NHC integration
 
-kb = 1.38064852e-23 # for real units
-kb = 1 # for internal/lj units
-
+#kb = 1 # for internal/lj units
+kb = 1.38064852e-23
 w = [1.0/(2.0 - 2.0**(1/3)),0,0]
 w[2] = w[0]
 w[1] = 1.0 - 2.0*w[0]
 
 def nhchain(Q, G, dt, natoms, vtherm, zeta, ke, vel, T):
-
+    
     M = len(zeta)  # chain length
     scale = 1.0
     for i in range(3):
@@ -65,6 +64,7 @@ def nhchain(Q, G, dt, natoms, vtherm, zeta, ke, vel, T):
         vtherm[M - 1] += G[M - 1] * ts / 4.0
 
     vel *= scale
+    return ke, vel
 
 #-----------------------------------------------------------
 def step(natoms,ensamble,dt,pot,nbonds,bond_style,bondcoeff,bonds,masses,pos,vel,acc): 

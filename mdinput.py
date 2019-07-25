@@ -201,7 +201,7 @@ re_dict_sysvals = {
         'dump': re.compile(r'^dump\s+[A-z]+\s+[A-z]+\s+[A-z]+\s+(?P<dump>\d+\s+[_A-z.\d]+)'),
         'bond_style': re.compile(r'^bond_style\s+(?P<bond_style>[A-z]+)'),
         'logfile': re.compile(r'^log\s+(?P<logfile>[_A-z.\d]+)'),
-        'inm': re.compile(r'^inm\s+(?P<inm>[_A-z.\d]+\s+\d+)'),
+        'inm': re.compile(r'^#inm\s+(?P<inm>[_A-z.\d]+\s+\d+)'),
         'reps': re.compile(r'^replicate\s+(?P<reps>\d+\s+\d+\s+\d+)'),
         'fix': re.compile(r'^fix\s+[_A-z\d]+\s+[_A-z\d]+\s+(?P<fix>[A-z]+)')
         }
@@ -234,7 +234,7 @@ def readsysvals(infile):
                 val = val.split()
                 data[3] = int(val[0])
                 data[4] = val[1]
-            if key == 'inm':
+            if key == 'inm': 
                 val = match.group(key).split()
                 data[7] = val[0]
                 data[8] = int(val[1])

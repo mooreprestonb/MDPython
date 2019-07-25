@@ -1,4 +1,4 @@
-# inputfile for mdlammps.py
+#inputfile for mdlammps.py
 
 units lj
 atom_style full
@@ -11,7 +11,7 @@ pair_coeff 1 1 1 1  # W W
 pair_coeff 1 2 1 1  # W C
 pair_coeff 2 2 1 1  # C C#
 
-bond_style 	harmonic
+bond_style  harmonic
 bond_coeff 1 2.2 1.5 # V r0
 #bond_coeff 2 1.2 2.5 # V r0
 
@@ -24,12 +24,15 @@ dump output all atom 10 ho.xyz
 thermo_style custom elapsed temp etotal ke pe evdwl ebond
 thermo 10
 
-log ho.log
-inm hoinm.dat 100
+log honvt.log
+#inm hoinm.dat 100
 
 #fix lm all momentum 100 linear 1 1 1
 #fix vvnve all nve
-fix nvtnhc all nvt 1.1 1.1 0.5  # nvt Tstart Tend Tdamp (time units)
+fix 1 all nvt temp 1.1 1.1 0.5 tchain 3
+#fix nvtnhc all nvt 1.1 1.1 0.1 # nvt Tstart Tend Tdamp (time units)
+
 run 100000
 
 write_data test.init
+

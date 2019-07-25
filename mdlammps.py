@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python2
 # run MD using lammps style input
 
 import sys
@@ -11,6 +11,7 @@ import re
 import mdinput   # file with input routines
 import mdoutput  # file with output routines
 import mdbond    # file with bonding routines
+import mdstep    # file with the integration
 
 # assigned global variables
 global natoms       # number of atoms
@@ -41,10 +42,6 @@ vtherm = np.zeros(2)
 G = np.zeros(2)
 
 #------------------------------------------------
-def zero_momentum(masses,vel): #zero the linear momentum
-    mom = masses*vel # get momentum
-    tmom = np.sum(mom,axis=0)/np.sum(masses,axis=0) #total mom/ma
-    vel -= tmom #zero out
 
 def readin(): # read lammps like infile
 
@@ -71,7 +68,7 @@ def readin(): # read lammps like infile
     
     if re.search('nvt',fix_type,flags=re.IGNORECASE):
         global T, Tdamp, Q
-        var = [float(num) for num in var_lst[:3]]
+        var = [float(num) for num in var_lst[1:4]]
         T, T, Tdamp = var
         Q = np.array([3*natoms*T*Tdamp*Tdamp]*2)
 
@@ -107,42 +104,30 @@ readin() # read infile
 ke = (0.5*np.dot(masses.transpose()[0],np.array([np.dot(vec,vec) for vec in vel])))
 ke_init = ke
 
-if fix_type:
-    if fix_type == 'nvt':
-        def step(): # nose-hoover chain
-            global pos, vel, acc, dt, ke, kb, w
-            
-            ke,vel = mdbond.nhchain(Q,G,dt,natoms,vtherm,zeta,ke,vel,T)
-            vel += acc*dt/2.0
-            pos += vel*dt
-            force()
-            vel += acc*dt/2.0
-            ke,vel = mdbond.nhchain(Q,G,dt,natoms,vtherm,zeta,ke,vel,T)
-
-    elif fix_type == 'nve':
-        def step(): # velocity verlet
-            global pos, vel, acc, dt
-
-            vel += acc*dt/2.0
-            pos += vel*dt
-            force()
-            vel += acc*dt/2.0
-
-    else:
-        print('Unrecognized fix type')
-        exit(1)
-
-else:
-    def step(): # velocity verlet
-        global pos, vel, acc, dt
-
+if fix_type == 'nvt':
+    def step(): # nose-hoover chain
+        global pos, vel, acc, dt, ke, kb, w
+        
+        ke,vel = mdstep.nhchain(Q,G,dt,natoms,vtherm,zeta,ke,vel,T)
         vel += acc*dt/2.0
         pos += vel*dt
         force()
         vel += acc*dt/2.0
+        ke,vel = mdstep.nhchain(Q,G,dt,natoms,vtherm,zeta,ke,vel,T)
+elif fix_type == 'nve':
+    def step(): # velocity verlet
+        global pos, vel, acc, dt
+        
+        vel += acc*dt/2.0
+        pos += vel*dt
+        force()
+        vel += acc*dt/2.0    
+else:
+    print('Unrecognized fix type')
+    exit(1)
 
 # inital force and adjustments
-zero_momentum(masses,vel)  # zero the momentum
+mdstep.zero_momentum(masses,vel)  # zero the momentum
 force()
 teng = mdoutput.write_thermo(logfile,0,natoms,masses,pos,vel,pot)
 
@@ -188,8 +173,14 @@ for istep in range(1,nsteps+1):
 print('Done dynamics! total time = {:g} seconds'.format(time.time()-ttime))
 mdoutput.write_init("test.init",istep-1,natoms,atypes,nbonds,tbonds,box,mass,pos,vel,bonds,aatype)
 
-print('energy_diff',ke-ke_init+(0.5*np.dot(Q,np.array([np.dot(vec,vec) for vec in vtherm]))))
-
+if(fix_type=='nve'):
+    print("NVE Energy Drift = ",ke-ke_init)
+elif(fix_type=='nvt'):
+    therm_energy = (0.5*np.dot(Q,np.array([np.dot(vec,vec) for vec in vtherm])))
+    print("NVT Energy Diff = ",ke-ke_init+therm_energy)
+else:
+    print('Fix_type unknown')
+    
 eig_array = np.array(eig_array)
 eig_array = [np.sign(x)*math.sqrt(abs(x)) for x in eig_array.ravel()]
 
