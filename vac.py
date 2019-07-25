@@ -6,11 +6,16 @@ import time
 import math
 from scipy.fftpack import dct
 
-file = open(sys.argv[0],"r")
+file = open(sys.argv[1],"r")
 
 lines = file.readlines()
 
 nwindow = 2**10
+
+print("Called with:",sys.argv)
+print("First line of",sys.argv[0],lines[0])
+print("Window length:",nwindow)
+
 natoms = lines[0].split()[1]
 natoms = int(natoms)
 dt = float(lines[natoms+1].split()[3]) - float(lines[0].split()[3])
@@ -36,10 +41,11 @@ ttime = tnow
 print("Correlating")
 for i in range(nconf-nwindow):
     # Correlate
+    #vac += numpy.einsum('ijk,jk',data,data[0])
     for k in range(nwindow):
         for j in range(natoms):
             vac[k] += numpy.dot(data[k][j],data[0][j])
-
+            
     # get next data window
     for j in range(nwindow-1): # move array down
         data[j] = data[j+1]
@@ -52,13 +58,15 @@ for i in range(nconf-nwindow):
 
 vac /= (nconf-nwindow)*natoms # normalize
 
-# vac /= vac[0] # set initial value to 1
+v2 = vac[0]
+vac /= vac[0] # set initial value to 1
 
 vac_dct = dct(vac)
-print (vac_dct)
+#print (vac_dct)
 
-print("Writing",sys.argv[1])
-file = open(sys.argv[1],"w")
+print("Writing",sys.argv[2])
+file = open(sys.argv[2],"w")
+file.write("# vac of velocity data, v2 = " + str(v2) +"\n") 
 for i in range(nwindow):
     line = str(dt*i) + " " + str(vac[i]) + "\n"
     file.write(line)
