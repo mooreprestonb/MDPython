@@ -1,0 +1,31 @@
+lammps testing 2 water molecules
+
+3 atoms
+3 bonds
+
+2 atom types
+2 bond types
+
+-5.0 5.0 xlo xhi
+-5.0 5.0 ylo yhi
+-5.0 5.0 zlo zhi
+
+Masses
+
+1 15.999
+2 1.008
+
+Atoms
+1 1 1 -0.82 0 0 0
+2 1 2 0.41 0 0 -1
+3 1 2 0.41 1 0 0
+
+Bonds
+1 1 1 2
+2 1 1 3
+3 2 2 3
+
+Velocities
+1 0 0.5 0
+2 0 0 0
+3 0 0 0
