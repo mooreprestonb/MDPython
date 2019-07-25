@@ -150,20 +150,21 @@ for istep in range(1,nsteps+1):
 
         # print(hessian)
         w,v = np.linalg.eig(hessian)
-        # remove lowest eigegvalues (translations of entire system)
-        idx = np.argmin(np.abs(w.real))
-        while abs(w[idx]) < tol:
-            w = np.delete(w,idx)
+        # remove 3 lowest eigegvalues (translations of entire system hopefully)
+        for i in range(3): # Be careful and make sure the eigenvector is translation
             idx = np.argmin(np.abs(w.real))
+            if(abs(w[idx]) > tol):
+                print("Removing eigvalue > tol",w[idx])
+            w = np.delete(w,idx)
         eig_array.append(w.real) # only get real part of array - imag do to round off error is small so we throw away.
 
     if(istep%ithermo==0): # write out thermodynamic data
         teng = mdoutput.write_thermo(logfile,istep,natoms,masses,pos,vel,pot)
 
     if(istep%idump==0): # dump to xyz file so we can see this in lammps
-        mdoutput.write_dump(dumpfile,istep,natoms,pos,aatype)
+        mdoutput.write_dump(dumpfile,istep*dt,natoms,pos,aatype)
 
-    if(istep%dump_vel==0):
+    if(istep%dump_vel==0): # dump out vel file to correlate
         mdoutput.write_dump_vel("vel.dat",istep*dt,natoms,vel)
 
     if(itime < time.time()-tnow): # report where we are
