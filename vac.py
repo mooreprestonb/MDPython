@@ -41,10 +41,10 @@ ttime = tnow
 print("Correlating")
 for i in range(nconf-nwindow):
     # Correlate
-    #vac += numpy.einsum('ijk,jk',data,data[0])
-    for k in range(nwindow):
-        for j in range(natoms):
-            vac[k] += numpy.dot(data[k][j],data[0][j])
+    vac += numpy.einsum('ijk,jk',data,data[0])
+    #for k in range(nwindow):
+    #    for j in range(natoms):
+    #        vac[k] += numpy.dot(data[k][j],data[0][j])
             
     # get next data window
     for j in range(nwindow-1): # move array down
@@ -61,9 +61,6 @@ vac /= (nconf-nwindow)*natoms # normalize
 v2 = vac[0]
 vac /= vac[0] # set initial value to 1
 
-vac_dct = dct(vac)
-#print (vac_dct)
-
 print("Writing",sys.argv[2])
 file = open(sys.argv[2],"w")
 file.write("# vac of velocity data, v2 = " + str(v2) +"\n") 
@@ -71,8 +68,12 @@ for i in range(nwindow):
     line = str(dt*i) + " " + str(vac[i]) + "\n"
     file.write(line)
 
+vac_dct = dct(vac)
+#print (vac_dct)
+
+area = numpy.sum(vac_dct)*(math.pi/(dt*nwindow))
 file.write("\n# cosine transform\n")
 for i in range(nwindow):
-    line = str(i*math.pi/(dt*nwindow))+ " " + str(vac_dct[i]) + "\n"
+    line = str(i*math.pi/(dt*nwindow))+ " " + str(vac_dct[i]/area) + "\n"
     file.write(line)
 

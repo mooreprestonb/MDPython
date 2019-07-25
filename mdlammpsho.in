@@ -19,10 +19,11 @@ bond_coeff 1 2.2 1.5 # V r0
 #bond_coeff 1 1.5 0.75 1.5 # D alpha r0
 #bond_coeff 2 1.5 0.75 2.0 # D alpha r0
 
+dump veloutput all custom 10 vel.lammpsvel id type vx vy vz
+
 dump output all atom 10 ho.xyz
 dump_modify output scale no sort id image yes
 
-dump veloutput all custom 10 vel.lammpsvel id type vx vy vz
 
 thermo_style custom elapsed temp etotal ke pe evdwl ebond
 thermo 10 

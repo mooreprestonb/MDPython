@@ -192,17 +192,18 @@ if(nconf==0):
     print("No configurations calculated eigenvalues! thus NOT calculating historgram")
 else:
     print("Creating Histogram with",len(eig_array),"configurations")
-    q1, q3 = np.percentile(np.array(eig_array), [25, 75])
-    iqr = q3 - q1
+    #q1, q3 = np.percentile(np.array(eig_array), [25, 75])
+    #iqr = q3 - q1
 
-    fd_width = 2*iqr/(nconf**(1/3))
-    fd = (np.amax(eig_array) - np.amin(eig_array))/fd_width
-    fd = int(fd) + 1
+    #fd_width = 2*iqr/(nconf**(1/3))
+    #fd = (np.amax(eig_array) - np.amin(eig_array))/fd_width
+    #fd = int(fd) + 1
 
-    sturges = np.log2(nconf) + 1
-    sturges = int(sturges) + 1
+    #sturges = np.log2(nconf) + 1
+    #sturges = int(sturges) + 1
 
-    bin_ct = max(fd,sturges)
+    #bin_ct = max(fd,sturges)
+    bin_ct = 100
     histo,histedge = np.histogram(np.array(eig_array),bins=bin_ct,density=True)
     histdat = np.zeros((histo.size,2))
     for i in range(histo.size):
