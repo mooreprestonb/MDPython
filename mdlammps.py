@@ -101,6 +101,7 @@ if not re.search(re.compile(r'.+\.in'),sys.argv[1]):
 print (sys.argv)
 
 readin() # read infile
+
 ke = (0.5*np.dot(masses.transpose()[0],np.array([np.dot(vec,vec) for vec in vel])))
 ke_init = ke
 
