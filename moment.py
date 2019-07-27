@@ -1,7 +1,6 @@
 #takes a file of two columns, x,y sorted by x without comments at the top
 
-#Needs a way to detect a y-value threshold for when a well starts and ends
-#as well as a way to specify which x-values to search
+#need a way to specify which x-values to search
 from __future__ import print_function
 
 import numpy as np
@@ -16,8 +15,14 @@ print("")
 
 for i in range(len(lines)):
     data[i] = float(lines[i].split()[1])
-     
-print("Data: ",data)
+
+threshold = 0.20
+samples = []
+for dF in data:
+    if dF and dF > threshold:
+        samples.append(dF)
+
+print("Data: ",samples)
 print("Length of array:",len(data))
 
 dt = data[1]-data[0]
@@ -28,7 +33,7 @@ xmax = float(lines[-1].split()[0])
 print("xmax: ",xmax)
 
 # composite trapezoidal rule.
-area = trapz(data, dx=dt)
+area = trapz(samples, dx=dt)
 mom1 = (1/(xmax-xmin)*area)
 print("First Moment: ", mom1)
 
