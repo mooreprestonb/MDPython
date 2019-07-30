@@ -73,9 +73,7 @@ def readin(): # read lammps like infile
         Q = np.array([3*natoms*T*Tdamp*Tdamp]*2)
 
 #-----------------------------------------------------------
-def force(): # get forces from potentials
-    global pot, nbonds, bonds, bondcoeff
-    global masses, pos, vel, acc
+def force(pos,vel,acc,masses,nbond,bonds,bondcoeff,pot): # get forces from potentials
 
     acc.fill(0) # zero out forces/acceration
     # lj
@@ -87,6 +85,10 @@ def force(): # get forces from potentials
     # torsion
     pot[3] = 0
 
+    # Change forces into accelerations
+    acc /= masses
+
+    return
 #-----------------------------------------------------------
 
 # read command line for input file
@@ -112,7 +114,7 @@ if fix_type == 'nvt':
         ke,vel = mdstep.nhchain(Q,G,dt,natoms,vtherm,zeta,ke,vel,T)
         vel += acc*dt/2.0
         pos += vel*dt
-        force()
+        force(pos,vel,acc,masses,nbonds,bonds,bondcoeff,pot) 
         vel += acc*dt/2.0
         ke,vel = mdstep.nhchain(Q,G,dt,natoms,vtherm,zeta,ke,vel,T)
 elif fix_type == 'nve':
@@ -121,7 +123,7 @@ elif fix_type == 'nve':
         
         vel += acc*dt/2.0
         pos += vel*dt
-        force()
+        force(pos,vel,acc,masses,nbonds,bonds,bondcoeff,pot)
         vel += acc*dt/2.0    
 else:
     print('Unrecognized fix type')
@@ -129,7 +131,7 @@ else:
 
 # inital force and adjustments
 mdstep.zero_momentum(masses,vel)  # zero the momentum
-force()
+force(pos,vel,acc,masses,nbonds,bonds,bondcoeff,pot) 
 teng = mdoutput.write_thermo(logfile,0,natoms,masses,pos,vel,pot)
 
 itime = 1

@@ -49,8 +49,6 @@ def bond_force(bond_style,nbonds,bonds,bondcoeff,pos,acc,masses):
         acc[bonds[i][1]] += F  # add forces to particles
         acc[bonds[i][2]] -= F
     
-    acc /= masses
-
     return pbond
 
 def inm(bond_style,nbonds,bonds,bondcoeff,pos,masses):
