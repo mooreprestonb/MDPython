@@ -58,7 +58,7 @@ for i in range(nconf-nwindow):
     #    data[j] = data[j+1]
     #for j in range(natoms): # read data into end of array
     #    data[-1][j] = lines[i*(natoms+1)+j+1].split()
-
+    
     if(itime < time.time()-tnow): # report where we are
         print('conf = {}/{} = {:.4f}%, time = {:g}'.format(i,nconf,i/nconf*100,time.time()-ttime))
         tnow = time.time()
@@ -68,18 +68,30 @@ vac /= (nconf-nwindow)*natoms # normalize
 v2 = vac[0]
 vac /= vac[0] # set initial value to 1
 
-print("Writing",sys.argv[2])
-file = open(sys.argv[2],"w")
-file.write("# vac of velocity data, v2 = " + str(v2) +"\n") 
+inter = numpy.zeros(len(vac)) 
+#for i in range(len(vac)): # Linear interpolation to zero
+#    inter[i] = float(vac[0]*(1.-(i/float(len(vac)))))
+#    vac[i] = vac[i]*inter[i]
+
+for i in range(len(vac)): # Exponential interpolation to zero
+    inter[i] = float(vac[0]*(numpy.exp(-(0.0089*i))))
+    vac[i] = vac[i]*inter[i]
+
+print("")
+print("Thing: ",inter)
+print("")
+
+print("Writing vac.dat")
+file = open("vac.dat","w")
 for i in range(nwindow):
     line = str(dt*i) + " " + str(vac[i]) + "\n"
     file.write(line)
 
 vac_dct = dct(vac)
 #print (vac_dct)
-
+print("Writing DCT")
+file = open("dct.dat","w")
 area = numpy.sum(vac_dct)*(math.pi/(dt*nwindow))
-file.write("\n# cosine transform\n")
 for i in range(nwindow):
     line = str(i*math.pi/(dt*nwindow))+ " " + str(vac_dct[i]/area) + "\n"
     file.write(line)
