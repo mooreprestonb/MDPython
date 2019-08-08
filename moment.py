@@ -1,42 +1,33 @@
 #takes a file of two columns, x,y sorted by x without comments at the top
-
-#need a way to specify which x-values to search
-#need a way to specify which moment.dat is from which distance
 from __future__ import print_function
+import math
 import numpy as np
 from scipy.integrate import simps
 from numpy import trapz
-import glob
 
-file = open("morse.eig.dat","r") # Figure out how to use wildcard
+file = open("harmonic.eig.dat","r") # Figure out how to use wildcard
 
 lines = file.readlines()
-total = np.zeros((len(lines)))
-data = np.zeros((len(lines)))
 print("")
 
-for i in range(1,len(lines)): # Get all of the x-values
-    total[i] = (lines[i]).split()[0]
-
+data = []
 domain = []
-limit = 1.0
-for i in total: # Filter out everything left of "limit"
-    if i and i > limit:
-        domain.append(i)
+rangemin = 1.
+rangemax = 2.5
+for i in lines: #Grab the data whose y-values are relevant, make float
+    if rangemax > float(i.split()[0]) > rangemin:
+        domain.append(float(i.split()[0]))
+        data.append(float(i.split()[1]))
 
-for i in range(len(domain)): # Put y's associated with domain into data 
-    data[i] = float((lines[-(i+1)]).split()[1])
+x = np.array(domain)
+sig0 = np.array(data)   # f_x
+sig1 = sig0*x   # x*f_x
+sig2 = sig1*x   # x^2*f_x
 
-threshold = 0.05
-samples = []
-for i in data: # Filter out signal below "threshold"
-    if i and i > threshold:
-        samples.append(i)
+print("x-values: ",x)
+print("y-values: ",sig0)
 
-print("Data Part 2: ",samples)
-print("")
-
-dt = total[2]-total[1] # Calculate integration step; changes with bin count
+dt = domain[2]-domain[1] # Calculate integration step; changes with bin count
 print("dx: ",dt)
 xmin = domain[0] #First one
 print("xmin: ",xmin)
@@ -44,15 +35,21 @@ xmax = domain[-1] # Last one
 print("xmax: ",xmax)
 
 # composite trapezoidal rule.
-area = trapz(samples, dx=dt)
-mom1 = (1/(xmax-xmin)*area)
+area = trapz(sig1, dx=dt)
+integral = trapz(sig0, dx=dt)
+extra_int = trapz(sig2, dx=dt)
+
+print("Distribution Integral: ", integral)
+
+mom1 = ((1/(integral))*area)
 print("First Moment: ", mom1)
 
-mom2 = np.std(data)
+mom2 = 2*math.sqrt(((1/(integral))*extra_int) - mom1**2) # Variance
 print("Second Moment: ", mom2)
 
 file = open("moment.dat","w")
-line = str("XXX")+" "+str(mom1)+" "+str(mom2)+ "\n"
+#line = str("XXX")+" "+str(mom1)+" "+str(mom2)+ "\n"
+line = str(mom1)
 file.write(line)
 
 #sample data
